@@ -1,0 +1,4 @@
+django
+PyPDF2
+pytesseract
+opencv-python
