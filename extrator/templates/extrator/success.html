@@ -14,6 +14,7 @@
         <div class="person-card" id="person-{{ pessoa.id }}">
             <form method="post" action="{% url 'alterar_pessoa' pessoa.id %}">
                 {% csrf_token %}
+                <input type="hidden" name="id" value="{{ pessoa.id }}">
                 <table class="table">
                     <tr>
                         <th>Condição</th>
@@ -100,12 +101,14 @@
                     </tr>
                 </table>
                 <!-- <button type="submit" class="btn-common">Adicionar pessoa</button> -->
+                
             </form>
             <div class="qualificacao">
                 <p id="qualificacao-{{ pessoa.id }}">
-                    {{ pessoa.nome }}, {{ pessoa.nacionalidade|lower }}, {{ pessoa.estado_civil|lower }}, profissão {{ pessoa.profissao|lower|default:'não esclarecida' }}, {{ pessoa.grau_instrucao|lower }}, portador do R.G. nº {{ pessoa.numero_documento }}, inscrito no C.P.F. sob nº {{ pessoa.cpf }}, filho de {{ pessoa.nome_pai }} e de {{ pessoa.nome_mae }}, natural de {{ pessoa.naturalidade|default:'local não apurado' }}, nascido em {{ pessoa.data_nascimento|date:'d \\d\\e F \\d\\e Y' }}, contando {{ pessoa.data_nascimento|date:'Y' }} anos na época do fato, de pele {{ pessoa.cor_pele|lower }}, com endereço na {{ pessoa.endereco }}, celular {{ pessoa.celular|default:'não informado' }}, CEP {{ pessoa.cep|default:'não informado' }}.
+                    {{ pessoa.qualificacao|default:"Qualificação não disponível." }}
                 </p>
             </div>
+            <button type="submit" class="btn-common">Salvar Alterações</button>
             <button class="btn-common" onclick="copyToClipboard('{{ pessoa.id }}')">Copiar Qualificação</button>
             <button class="btn-common" onclick="removePerson('{{ pessoa.id }}')">Remover Pessoa</button>
 
@@ -210,6 +213,8 @@
         </form>
     </div>
 </div>
+
+<div id="qualify-response" class="qualify-response"></div>
 
 <script>
 document.getElementById('add-person').addEventListener('click', function() {
@@ -355,7 +360,18 @@ document.getElementById('add-person-form').addEventListener('submit', function(e
 
 // Código reservado para qualificar todos
 document.getElementById('qualify-all').addEventListener('click', function() {
-    alert('Funcionalidade de qualificar todos será implementada.');
+    fetch('{% url "qualificar_todos" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('qualify-response').innerText = data.response;
+        document.getElementById('qualify-response').style.display = 'block';
+    })
+    .catch(error => console.error('Erro:', error));
 });
 
 function removePerson(id) {
@@ -370,7 +386,9 @@ function removePerson(id) {
             if (response.ok) {
                 document.getElementById(`person-${id}`).remove();
             } else {
-                alert('Erro ao remover pessoa.');
+                response.json().then(data => {
+                    alert(data.message || 'Erro ao remover pessoa.');
+                });
             }
         })
         .catch(error => {
@@ -378,5 +396,83 @@ function removePerson(id) {
         });
     }
 }
+
+document.getElementById('add-person-form').addEventListener('submit', function(event) {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    const data = Object.fromEntries(formData.entries());
+
+    if (!data.data_nascimento) {
+        data.data_nascimento = null;  // Set to null if empty
+    }
+
+    fetch('{% url "add_person" %}', {  
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value  // Adiciona o CSRF token
+        },
+        body: JSON.stringify(data),
+    })
+    .then(response => response.json())
+    .then(person => {
+        // Adicionar a nova pessoa à lista
+        const container = document.getElementById('pessoa-container');
+        const newPersonHtml = `
+        <div class="person-card" id="person-${person.id}">
+            <form method="post" action="/alterar_pessoa/${person.id}">
+                <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+                <table class="table">
+                    <!-- Form fields... -->
+                </table>
+            </form>
+            <div class="qualificacao">
+                <p>
+                    <!-- Qualification content... -->
+                </p>
+                <button class="btn-common" onclick="copyToClipboard('${person.id}')">Copiar Qualificação</button>
+                <button class="btn-common" onclick="removePerson('${person.id}')">Remover Pessoa</button>
+            </div>
+        </div>`;
+        container.insertAdjacentHTML('beforeend', newPersonHtml);
+        document.getElementById('add-person-popup').style.display = 'none';
+        document.getElementById('add-person-form').reset();  // Redefinir o formulário
+    })
+    .catch((error) => {
+        console.error('Erro:', error);
+    });
+});
+
+document.querySelectorAll('.person-form').forEach(form => {
+    form.addEventListener('submit', function(event) {
+        event.preventDefault();
+        const formData = new FormData(event.target);
+        const data = Object.fromEntries(formData.entries());
+
+        fetch(form.action, {  
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: new URLSearchParams(data).toString(),
+        })
+        .then(() => {
+            // Atualizar qualificação após salvar as alterações
+            fetch(`/extrator/qualificar_pessoa/${data.id}/`, {
+                method: 'GET',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById(`qualificacao-${data.id}`).innerText = data.qualificacao;
+            })
+            .catch(error => console.error('Erro ao qualificar pessoa:', error));
+        })
+        .catch(error => console.error('Erro ao salvar alterações:', error));
+    });
+});
 </script>
 {% endblock %}
