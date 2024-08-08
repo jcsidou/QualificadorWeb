@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% load static %}
+    {% load custom_filters %}
+    <link rel="stylesheet" href="{% static 'styles.css' %}">
+    <title>QualificadorWeb</title>
+</head>
+<body>
+    <header>
+        <h1>QualificadorWeb</h1>
+    </header>
+    <main>
+        {% block content %}
+        {% endblock %}
+    </main>
+    <footer>
+        <p>&copy; 2024 QualificadorWeb</p>
+    </footer>
+</body>
+</html>
