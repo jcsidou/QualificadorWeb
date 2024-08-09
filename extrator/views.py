@@ -15,7 +15,7 @@ from datetime import datetime
 from openai import OpenAI
 
 # Carregar a chave API do arquivo settings.json
-with open('./settings.json') as f:
+with open('./configs.json') as f:
     settings = json.load(f)
     openai_api_key = settings.get('OpenAI_API_KEY')
 

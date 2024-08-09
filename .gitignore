@@ -1,8 +1,8 @@
+settings.json
 env_qualificador_web/
 *.pyc
 __pycache__/
 db.sqlite3
-/static
 .venv/
 /.vs
 cabecalho.txt
@@ -11,4 +11,4 @@ rodape.txt
 str_cabecalho.txt
 str_rodape.txt
 participantes.json
-./settings.json
+configs.json
