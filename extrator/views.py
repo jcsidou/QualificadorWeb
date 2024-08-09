@@ -41,15 +41,19 @@ CONDICOES_SUBSTITUICOES = {
 }
 
 def limpar_texto(texto):
-    if (not texto):
-            return None
-    # Substituir marcas de parágrafo e quebras de linha por espaços
-    texto = re.sub(r'\n', ' ', texto)
-    # Remover espaços duplos
-    texto = re.sub(r'\s+', ' ', texto)
-    # Remover espaços antes de sinais de pontuação
-    texto = re.sub(r'\s+([.,;?!])', r'\1', texto)
-    return texto.strip()
+    try:
+        # Substituir marcas de parágrafo e quebras de linha por espaços
+        texto = re.sub(r'\n', ' ', texto)
+        # Remover espaços duplos
+        texto = re.sub(r'\s+', ' ', texto)
+        # Remover espaços antes de sinais de pontuação
+        texto = re.sub(r'\s+([.,;?!])', r'\1', texto)
+        texto = texto.strip()
+    except:
+        print('Erro ao limpar o texto')
+    finally:
+        print(f'''"{texto}"''')
+        return texto
 
 def atualizar_condicao(condicao):
     for chave, valor in CONDICOES_SUBSTITUICOES.items():
@@ -152,39 +156,39 @@ def upload_file_view(request):
                 participante['id'] = matchNum
                 participantes.append(participante)
 
-                data_nascimento_str = participante.get('Data_Nascimento')
-                data_nascimento = None
-                if data_nascimento_str:
-                    try:
-                        # Converte a data para o formato YYYY-MM-DD
-                        data_nascimento = datetime.strptime(data_nascimento_str, "%d/%m/%Y").date()
-                    except ValueError:
-                        # Trata o erro se o formato da data estiver incorreto
-                        raise ValidationError(f"Data de nascimento {data_nascimento_str} está em um formato inválido.")
+                # data_nascimento_str = participante.get('Data_Nascimento')
+                # data_nascimento = None
+                # if data_nascimento_str:
+                #     try:
+                #         # Converte a data para o formato YYYY-MM-DD
+                #         data_nascimento = datetime.strptime(data_nascimento_str, "%d/%m/%Y").date()
+                #     except ValueError:
+                #         # Trata o erro se o formato da data estiver incorreto
+                #         raise ValidationError(f"Data de nascimento {data_nascimento_str} está em um formato inválido.")
 
                 # Criar objeto Pessoa com os dados extraídos
-                pessoa = Pessoa(
-                    nome=limpar_texto(participante.get('Nome', '')),
-                    condicao=atualizar_condicao(limpar_texto(participante.get('Condicao', ''))),
-                    nome_pai=limpar_texto(participante.get('Pai', '')),
-                    nome_mae=limpar_texto(participante.get('Mae', '')),
-                    data_nascimento=data_nascimento,
-                    sexo=limpar_texto(participante.get('Sexo', '')),
-                    cpf=formatar_cpf(extrair_numeros(limpar_texto(participante.get('CPF', '')))),
-                    estado_civil=limpar_texto(participante.get('Estado_Civil', '')),
-                    grau_instrucao=formatar_ensino(limpar_texto(participante.get('Grau_de_Instrucao', ''))),
-                    cor_pele=limpar_texto(participante.get('Cor_Pele', '')),
-                    naturalidade=limpar_texto(participante.get('Natural_Cidade', '')),
-                    naturalidade_UF=limpar_texto(participante.get('Natural_UF', '')),
-                    nacionalidade=limpar_texto(participante.get('Nacionalidade', '')),
-                    documento=limpar_texto(participante.get('Documento', '')),
-                    numero_documento=limpar_texto(participante.get('No_Documento', '')),
-                    endereco=limpar_texto(participante.get('Endereco', '')),
-                    profissao=limpar_texto(participante.get('Profissao', '')),
-                    end_profissional=limpar_texto(participante.get('Endereco_Profissional', '')),
-                )
+                # pessoa = Pessoa(
+                #     nome=limpar_texto(participante.get('Nome', '')),
+                #     condicao=atualizar_condicao(limpar_texto(participante.get('Condicao', ''))),
+                #     nome_pai=limpar_texto(participante.get('Pai', '')),
+                #     nome_mae=limpar_texto(participante.get('Mae', '')),
+                #     data_nascimento=data_nascimento,
+                #     sexo=limpar_texto(participante.get('Sexo', '')),
+                #     cpf=formatar_cpf(extrair_numeros(limpar_texto(participante.get('CPF', '')))),
+                #     estado_civil=limpar_texto(participante.get('Estado_Civil', '')),
+                #     grau_instrucao=formatar_ensino(limpar_texto(participante.get('Grau_de_Instrucao', ''))),
+                #     cor_pele=limpar_texto(participante.get('Cor_Pele', '')),
+                #     naturalidade=limpar_texto(participante.get('Natural_Cidade', '')),
+                #     naturalidade_UF=limpar_texto(participante.get('Natural_UF', '')),
+                #     nacionalidade=limpar_texto(participante.get('Nacionalidade', '')),
+                #     documento=limpar_texto(participante.get('Documento', '')),
+                #     numero_documento=limpar_texto(participante.get('No_Documento', '')),
+                #     endereco=limpar_texto(participante.get('Endereco', '')),
+                #     profissao=limpar_texto(participante.get('Profissao', '')),
+                #     end_profissional=limpar_texto(participante.get('Endereco_Profissional', '')),
+                # )
 
-                pessoa.save()
+                # pessoa.save()
 
             # Converter lista de dicionários para JSON
             participantes_json = json.dumps(participantes, indent=4, ensure_ascii=False)
@@ -193,7 +197,7 @@ def upload_file_view(request):
 
             # Verificar se os dados foram escritos na sessão
             session_data = read_json_from_session(request)
-            print("Dados na sessão após escrita:", session_data)  # Adicionar print para depuração
+            # print("Dados na sessão após escrita:", session_data)  # Adicionar print para depuração
             
             return redirect('upload_success')
     else:
