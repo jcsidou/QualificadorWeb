@@ -1,11 +1,12 @@
 {% extends 'extrator/base.html' %}
 
 {% block content %}
-<h2>Carregar a ocorrência</h2>
+<h2 class="title-shadow">Carregar a ocorrência</h2>
 <form method="post" enctype="multipart/form-data">
     
     {% csrf_token %}
     {{ form.as_p }}
-    <button type="submit">Upload</button>
+    <button button class="action-button btn-common" type="submit">Upload</button>
 </form>
 {% endblock %}
+

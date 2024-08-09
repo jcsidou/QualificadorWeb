@@ -2,118 +2,114 @@
 
 {% block content %}
 <h2 class="title-shadow">Participantes Criados</h2>
-</p>
 <div class="action-bar">
     <button class="action-button btn-common" id="add-person">Acrescentar Pessoa</button>
     <button class="action-button btn-common" id="qualify-all">Qualificar Todos</button>
 </div>
-<p class="espaco_superior">.</p>
-</p>
 <div class="container" id="pessoa-container">
     {% for pessoa in pessoas %}
-        <div class="person-card" id="person-{{ pessoa.id }}">
-            <form method="post" action="{% url 'alterar_pessoa' pessoa.id %}">
-                {% csrf_token %}
-                <input type="hidden" name="id" value="{{ pessoa.id }}">
-                <table class="table">
-                    <tr>
-                        <th>Condição</th>
-                        <td>
-                            <select name="condicao" class="form-select">
-                                <option value="Agente" {% if pessoa.condicao == 'Agente' %}selected{% endif %}>Agente</option>
-                                <option value="Vítima" {% if pessoa.condicao == 'Vítima' %}selected{% endif %}>Vítima</option>
-                                <option value="Testemunha" {% if pessoa.condicao == 'Testemunha' %}selected{% endif %}>Testemunha</option>
-                            </select>
-                        </td>
-                        <th>Alcunha</th>
-                        <td><input type="text" name="alcunha" class="input-field" value="{{ pessoa.alcunha }}"></td>
-                    </tr>
-                    <tr>
-                        <th>Nome</th>
-                        <td colspan="3"><input type="text" name="nome" class="input-field" value="{{ pessoa.nome }}"></td>
-                    </tr>
-                    <tr>
-                        <th>Pai</th>
-                        <td><input type="text" name="nome_pai" class="input-field" value="{{ pessoa.nome_pai }}"></td>
-                        <th>Mãe</th>
-                        <td><input type="text" name="nome_mae" class="input-field" value="{{ pessoa.nome_mae }}"></td>
-                    </tr>
-                    <tr>
-                        <th>Nascimento</th>
-                        <td><input type="date" name="data_nascimento" class="input-field date-input" value="{{ pessoa.data_nascimento|date:'Y-m-d' }}" placeholder="DD/MM/YYYY"></td>
-                        <th>Sexo</th>
-                        <td>
-                            <select name="sexo" class="form-select">
-                                <option value="Masculino" {% if pessoa.sexo == 'Masculino' %}selected{% endif %}>Masculino</option>
-                                <option value="Feminino" {% if pessoa.sexo == 'Feminino' %}selected{% endif %}>Feminino</option>
-                                <option value="Outro" {% if pessoa.sexo == 'Outro' %}selected{% endif %}>Outro</option>
-                            </select>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>CPF</th>
-                        <td><input type="text" name="cpf" class="input-field" value="{{ pessoa.cpf }}"></td>
-                        <th>Cor Pele</th>
-                        <td><input type="text" name="cor_pele" class="input-field" value="{{ pessoa.cor_pele }}"></td>
-                    </tr>
-                    <tr>
-                        <th>Estado Civil</th>
-                        <td><input type="text" name="estado_civil" class="input-field" value="{{ pessoa.estado_civil }}"></td>
-                        <th>Instrução</th>
-                        <td>
-                            <select name="grau_instrucao" class="form-select">
-                                <option value="Ensino fundamental incompleto" {% if pessoa.grau_instrucao == 'Ensino fundamental incompleto' %}selected{% endif %}>Ensino fundamental incompleto</option>
-                                <option value="Ensino fundamental" {% if pessoa.grau_instrucao == 'Ensino fundamental' %}selected{% endif %}>Ensino fundamental</option>
-                                <option value="Ensino médio incompleto" {% if pessoa.grau_instrucao == 'Ensino médio incompleto' %}selected{% endif %}>Ensino médio incompleto</option>
-                                <option value="Ensino médio" {% if pessoa.grau_instrucao == 'Ensino médio' %}selected{% endif %}>Ensino médio</option>
-                                <option value="Ensino superior incompleto" {% if pessoa.grau_instrucao == 'Ensino superior incompleto' %}selected{% endif %}>Ensino superior incompleto</option>
-                                <option value="Ensino superior" {% if pessoa.grau_instrucao == 'Ensino superior' %}selected{% endif %}>Ensino superior</option>
-                            </select>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>Naturalidade</th>
-                        <td>
-                            <input type="text" name="naturalidade" class="input-field naturalidade-input" value="{{ pessoa.naturalidade }}"> /
-                            <input type="text" name="naturalidade_UF" class="input-field uf-input" value="{{ pessoa.naturalidade_UF }}">
-                        </td>
-                        <th>Nacionalidade</th>
-                        <td><input type="text" name="nacionalidade" class="input-field" value="{{ pessoa.nacionalidade }}"></td>
-                    </tr>
-                    <tr>
-                        <th>Tipo Doc.</th>
-                        <td><input type="text" name="documento" class="input-field" value="{{ pessoa.documento }}"></td>
-                        <th>Nº Doc.</th>
-                        <td><input type="text" name="numero_documento" class="input-field" value="{{ pessoa.numero_documento }}"></td>
-                    </tr>
-                    <tr>
-                        <th>Endereço</th>
-                        <td colspan="3"><input type="text" name="endereco" class="input-field" value="{{ pessoa.endereco }}"></td>
-                    </tr>
-                    <tr>
-                        <th>End. Prof.</th>
-                        <td colspan="3"><input type="text" name="end_profissional" class="input-field" value="{{ pessoa.end_profissional }}"></td>
-                    </tr>
-                    <tr>
-                        <th>Profissão</th>
-                        <td><input type="text" name="profissao" class="input-field" value="{{ pessoa.profissao }}"></td>
-                        <th>Representa</th>
-                        <td><input type="checkbox" name="representa" class="checkbox-field" {% if pessoa.representa %}checked{% endif %}></td>
-                    </tr>
-                </table>
-                <!-- <button type="submit" class="btn-common">Adicionar pessoa</button> -->
-                
-            </form>
-            <div class="qualificacao">
-                <p id="qualificacao-{{ pessoa.id }}">
-                    {{ pessoa.qualificacao|default:"Qualificação não disponível." }}
-                </p>
+        {% if pessoa.id %}
+            <div class="person-card" id="person-{{ pessoa.id }}">
+                <form method="post" action="{% url 'alterar_pessoa' pessoa.id %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="id" value="{{ pessoa.id }}">
+                    <table class="table">
+                        <tr>
+                            <th>Condição</th>
+                            <td>
+                                <select name="condicao" class="form-select">
+                                    <option value="Agente" {% if pessoa.condicao == 'Agente' %}selected{% endif %}>Agente</option>
+                                    <option value="Vítima" {% if pessoa.condicao == 'Vítima' %}selected{% endif %}>Vítima</option>
+                                    <option value="Testemunha" {% if pessoa.condicao == 'Testemunha' %}selected{% endif %}>Testemunha</option>
+                                </select>
+                            </td>
+                            <th>Alcunha</th>
+                            <td><input type="text" name="alcunha" class="input-field" value="{{ pessoa.alcunha }}"></td>
+                        </tr>
+                        <tr>
+                            <th>Nome</th>
+                            <td colspan="3"><input type="text" name="nome" class="input-field" value="{{ pessoa.nome }}"></td>
+                        </tr>
+                        <tr>
+                            <th>Pai</th>
+                            <td><input type="text" name="nome_pai" class="input-field" value="{{ pessoa.nome_pai }}"></td>
+                            <th>Mãe</th>
+                            <td><input type="text" name="nome_mae" class="input-field" value="{{ pessoa.nome_mae }}"></td>
+                        </tr>
+                        <tr>
+                            <th>Nascimento</th>
+                            <td><input type="date" name="data_nascimento" class="input-field date-input" value="{{ pessoa.data_nascimento|date:'Y-m-d' }}" placeholder="DD/MM/YYYY"></td>
+                            <th>Sexo</th>
+                            <td>
+                                <select name="sexo" class="form-select">
+                                    <option value="Masculino" {% if pessoa.sexo == 'Masculino' %}selected{% endif %}>Masculino</option>
+                                    <option value="Feminino" {% if pessoa.sexo == 'Feminino' %}selected{% endif %}>Feminino</option>
+                                    <option value="Outro" {% if pessoa.sexo == 'Outro' %}selected{% endif %}>Outro</option>
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>CPF</th>
+                            <td><input type="text" name="cpf" class="input-field" value="{{ pessoa.cpf }}"></td>
+                            <th>Cor Pele</th>
+                            <td><input type="text" name="cor_pele" class="input-field" value="{{ pessoa.cor_pele }}"></td>
+                        </tr>
+                        <tr>
+                            <th>Estado Civil</th>
+                            <td><input type="text" name="estado_civil" class="input-field" value="{{ pessoa.estado_civil }}"></td>
+                            <th>Instrução</th>
+                            <td>
+                                <select name="grau_instrucao" class="form-select">
+                                    <option value="Ensino fundamental incompleto" {% if pessoa.grau_instrucao == 'Ensino fundamental incompleto' %}selected{% endif %}>Ensino fundamental incompleto</option>
+                                    <option value="Ensino fundamental" {% if pessoa.grau_instrucao == 'Ensino fundamental' %}selected{% endif %}>Ensino fundamental</option>
+                                    <option value="Ensino médio incompleto" {% if pessoa.grau_instrucao == 'Ensino médio incompleto' %}selected{% endif %}>Ensino médio incompleto</option>
+                                    <option value="Ensino médio" {% if pessoa.grau_instrucao == 'Ensino médio' %}selected{% endif %}>Ensino médio</option>
+                                    <option value="Ensino superior incompleto" {% if pessoa.grau_instrucao == 'Ensino superior incompleto' %}selected{% endif %}>Ensino superior incompleto</option>
+                                    <option value="Ensino superior" {% if pessoa.grau_instrucao == 'Ensino superior' %}selected{% endif %}>Ensino superior</option>
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Naturalidade</th>
+                            <td>
+                                <input type="text" name="naturalidade" class="input-field naturalidade-input" value="{{ pessoa.naturalidade }}"> /
+                                <input type="text" name="naturalidade_UF" class="input-field uf-input" value="{{ pessoa.naturalidade_UF }}">
+                            </td>
+                            <th>Nacionalidade</th>
+                            <td><input type="text" name="nacionalidade" class="input-field" value="{{ pessoa.nacionalidade }}"></td>
+                        </tr>
+                        <tr>
+                            <th>Tipo Doc.</th>
+                            <td><input type="text" name="documento" class="input-field" value="{{ pessoa.documento }}"></td>
+                            <th>Nº Doc.</th>
+                            <td><input type="text" name="numero_documento" class="input-field" value="{{ pessoa.numero_documento }}"></td>
+                        </tr>
+                        <tr>
+                            <th>Endereço</th>
+                            <td colspan="3"><input type="text" name="endereco" class="input-field" value="{{ pessoa.endereco }}"></td>
+                        </tr>
+                        <tr>
+                            <th>End. Prof.</th>
+                            <td colspan="3"><input type="text" name="end_profissional" class="input-field" value="{{ pessoa.end_profissional }}"></td>
+                        </tr>
+                        <tr>
+                            <th>Profissão</th>
+                            <td><input type="text" name="profissao" class="input-field" value="{{ pessoa.profissao }}"></td>
+                            <th>Representa</th>
+                            <td><input type="checkbox" name="representa" class="checkbox-field" {% if pessoa.representa %}checked{% endif %}></td>
+                        </tr>
+                    </table>
+                </form>
+                <div class="qualificacao">
+                    <p id="qualificacao-{{ pessoa.id }}">
+                        {{ pessoa.qualificacao|default:"Qualificação não disponível." }}
+                    </p>
+                </div>
+                <button type="submit" class="btn-common">Salvar Alterações</button>
+                <button class="btn-common" onclick="copyToClipboard('{{ pessoa.id }}')">Copiar Qualificação</button>
+                <button class="btn-common" onclick="removePerson('{{ pessoa.id }}')">Remover Pessoa</button>
             </div>
-            <button type="submit" class="btn-common">Salvar Alterações</button>
-            <button class="btn-common" onclick="copyToClipboard('{{ pessoa.id }}')">Copiar Qualificação</button>
-            <button class="btn-common" onclick="removePerson('{{ pessoa.id }}')">Remover Pessoa</button>
-
-        </div>
+        {% endif %}
     {% endfor %}
 </div>
 

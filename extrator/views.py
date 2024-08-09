@@ -69,10 +69,13 @@ def extrair_numeros(cpf):
     return re.sub(r'\D', '', cpf)
 
 def formatar_cpf(cpf):
-    cpf = extrair_numeros(cpf)
-    if len(cpf) == 11:
-        return f"{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:]}"
-    return cpf
+    try:
+        cpf = extrair_numeros(cpf)
+        if len(cpf) == 11:
+            return f"{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:]}"
+        return cpf
+    except:
+        return None
 
 def extrair_texto_pdf(arquivo):
     # Função para extrair texto de um PDF
@@ -129,6 +132,9 @@ def limpar_e_extrair(texto, regex_parametros):
 @csrf_exempt
 def upload_file_view(request):
     if request.method == 'POST':
+        # Limpar JSON da sessão
+        request.session['participantes'] = json.dumps([])
+
         form = UploadFileForm(request.POST, request.FILES)
         if form.is_valid():
             arquivo = request.FILES['file']
@@ -140,11 +146,12 @@ def upload_file_view(request):
 
             matches = re.finditer(regex, texto, re.MULTILINE)
             participantes = []
-            pessoas_criadas = []
             for matchNum, match in enumerate(matches, start=1):
                 participante = match.groupdict()
+                # Adicionar ID único para cada participante
+                participante['id'] = matchNum
                 participantes.append(participante)
-                
+
                 data_nascimento_str = participante.get('Data_Nascimento')
                 data_nascimento = None
                 if data_nascimento_str:
@@ -159,43 +166,36 @@ def upload_file_view(request):
                 pessoa = Pessoa(
                     nome=limpar_texto(participante.get('Nome', '')),
                     condicao=atualizar_condicao(limpar_texto(participante.get('Condicao', ''))),
-                    # alcunha=limpar_texto('',
                     nome_pai=limpar_texto(participante.get('Pai', '')),
                     nome_mae=limpar_texto(participante.get('Mae', '')),
                     data_nascimento=data_nascimento,
                     sexo=limpar_texto(participante.get('Sexo', '')),
-                    cpf=extrair_numeros(limpar_texto(participante.get('CPF', ''))),
+                    cpf=formatar_cpf(extrair_numeros(limpar_texto(participante.get('CPF', '')))),
                     estado_civil=limpar_texto(participante.get('Estado_Civil', '')),
-                    grau_instrucao=formatar_ensino(limpar_texto(participante.get('Grau_de_Instrucao', ''))).capitalize,
+                    grau_instrucao=formatar_ensino(limpar_texto(participante.get('Grau_de_Instrucao', ''))),
                     cor_pele=limpar_texto(participante.get('Cor_Pele', '')),
                     naturalidade=limpar_texto(participante.get('Natural_Cidade', '')),
-                    naturalidade_UF =limpar_texto( participante.get('Natural_UF', '')),
+                    naturalidade_UF=limpar_texto(participante.get('Natural_UF', '')),
                     nacionalidade=limpar_texto(participante.get('Nacionalidade', '')),
                     documento=limpar_texto(participante.get('Documento', '')),
                     numero_documento=limpar_texto(participante.get('No_Documento', '')),
                     endereco=limpar_texto(participante.get('Endereco', '')),
                     profissao=limpar_texto(participante.get('Profissao', '')),
                     end_profissional=limpar_texto(participante.get('Endereco_Profissional', '')),
-                    # representa=limpar_texto(False,
-                    )
+                )
 
-                print(pessoa.nome)
-                print(pessoa.condicao)
-                print(pessoa.grau_instrucao)
-                print(pessoa.cpf)
-                
                 pessoa.save()
-                pessoas_criadas.append(pessoa)
-                
+
             # Converter lista de dicionários para JSON
             participantes_json = json.dumps(participantes, indent=4, ensure_ascii=False)
-            # print(participantes_json)
-            # with open("participantes.json", "w", encoding='utf-8') as f:
-            #     f.write(participantes_json)
-                
-            write_json_to_session(request, participantes_json)
+            print("Participantes JSON:", participantes_json)  # Adicionar print para depuração
+            write_json_to_session(request, participantes)
 
-            return render(request, 'extrator/success.html', {'pessoas': pessoas_criadas})
+            # Verificar se os dados foram escritos na sessão
+            session_data = read_json_from_session(request)
+            print("Dados na sessão após escrita:", session_data)  # Adicionar print para depuração
+            
+            return redirect('upload_success')
     else:
         form = UploadFileForm()
     return render(request, 'extrator/upload.html', {'form': form})
@@ -272,10 +272,9 @@ def alterar_pessoa(request, pessoa_id):
         write_json_to_session(request, json_data)
 
         # Atualizar qualificação
-        qualificar_pessoa(request, pessoa.id)
-
-        return redirect('success')
-    return redirect('success')
+        qualificacao = qualificar_pessoa(pessoa)
+        return JsonResponse({'qualificacao': qualificacao})
+    return HttpResponseNotAllowed(['POST'])
 
 # Adicionar pessoa
 @csrf_exempt
@@ -321,6 +320,7 @@ def add_person(request):
         json_data = read_json_from_session(request)
         pessoa_data = data
         pessoa_data['id'] = pessoa.id
+        pessoa_data['cpf'] = formatar_cpf(pessoa_data['cpf'])
         json_data.append(pessoa_data)
         write_json_to_session(request, json_data)
 
@@ -369,7 +369,6 @@ def qualificar_todos(request):
             {"role": "user", "content": f"Aqui está o arquivo JSON:\n{json_str}"},
             {"role": "user", "content": f"""Exemplo de formato, onde %% indicam uma variável fornecida: '%NOME%, %nacionalidade%, %estado_civil%, %profissao%, %Grau_de_Instrucao%, portador do %Documento_Tipo% nº %No_documento%, , inscrito no C.P.F. sob nº %CPF%, filho de %Pai% e de %Mae%, natural de %Natural_Cidade%/%Natural_UF%, nascido em %data_nascimento(por extenso)%, contando %idade_nos_fatos% anos na época do fato, de pele %pele%, com endereço na %endereço%'"""},            
         ]
-        # print(messages_to_model)
         response = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=messages_to_model,
@@ -378,7 +377,7 @@ def qualificar_todos(request):
                 stop=None,
                 temperature=0.1,
             )
-        # print(response)
+
         resposta = response.choices[0].message.content
         print(resposta)
 
@@ -388,59 +387,193 @@ def qualificar_todos(request):
     
 # Função para ler JSON da sessão
 def read_json_from_session(request):
-    return request.session.get('participantes', [])
+    json_data = request.session.get('participantes', '[]')
+    return json.loads(json_data) if isinstance(json_data, str) else json_data
 
 # Função para escrever JSON na sessão
 def write_json_to_session(request, data):
-    request.session['participantes'] = data
+    request.session['participantes'] = json.dumps(data)
+    json_data= request.session.get('participantes', '[]')
         
-# Qualificar pessoa individualmente
-def qualificar_pessoa(request, pessoa_id):
+def qualificar_pessoa(pessoa):
+    # Adicionar código para qualificar a pessoa
+    # Certifique-se de que todos os campos necessários estejam sendo usados corretamente
+    result = []
+    feminino = False
+    try:
+        if pessoa.sexo.lower() == 'feminino':
+            feminino = True
+    except:
+        pass
 
-    pessoa = get_object_or_404(Pessoa, id=pessoa_id)
-    client = OpenAI(api_key='sk-svcacct-EXykCFQCf4COIUhM1mu6HIvt5RnG2qPl3HcwX2elys35GhtOo214Gk0IJz-rCFT3BlbkFJNBl8o6YDoGGjIofn9fCkaybTfXhCfQ_iQsLfbHVyGRK16vPltLBr2J_DPzJQcA')
+    nome = pessoa.nome.upper() if pessoa.nome else "Nome não informado"
+    nacionalidade = pessoa.nacionalidade.lower() if pessoa.nacionalidade else "nacionalidade não esclarecida"
+    estado_civil = pessoa.estado_civil.lower() if pessoa.estado_civil else "estado civil não informado"
+    profissao = pessoa.profissao.lower() if pessoa.profissao else "profissão não informada"
+    grau_instrucao = pessoa.grau_instrucao.lower().replace(" completo", "") if pessoa.grau_instrucao else "grau de instrução não apurado"
     
+    result.append(f'{nome}, ')
+    result.append(f'{nacionalidade}, ')
+    result.append(f'{estado_civil}, ')
+    result.append(f'{profissao}, ')
+    result.append(f'de instrução {grau_instrucao}, ')
+
+    pai_declarado = bool(pessoa.nome_pai and pessoa.nome_pai != "-" and pessoa.nome_pai.lower() != "desconhecido")
+    mae_declarada = bool(pessoa.nome_mae and pessoa.nome_mae != "-" and pessoa.nome_mae.lower() != "desconhecida")
+
+    if not pai_declarado and not mae_declarada:
+        result.append('filiação desconhecida, ')
+    else:
+        if feminino:
+            result.append('filha de ')
+        else:
+            result.append('filho de ')
+
+        if pai_declarado:
+            result.append(pessoa.nome_pai)
+
+        if pai_declarado and mae_declarada:
+            result.append(' e de ')
+
+        if mae_declarada:
+            result.append(f'{pessoa.nome_mae}, ')
+
+    if feminino:
+        result.append('nascida em ')
+    else:
+        result.append('nascido em ')
+    
+    if pessoa.data_nascimento:
+        formatted_date = pessoa.data_nascimento.strftime('%d/%m/%Y')
+        result.append(f'{formatted_date}, ')
+    else:
+        result.append('data não esclarecida, ')
+
+    naturalidade = f'natural de {pessoa.naturalidade}, ' if pessoa.naturalidade else 'em local não informado, '
+    result.append(naturalidade)
+
+    if feminino:
+        result.append('inscrita no C.P.F. sob nº ')
+    else:
+        result.append('inscrito no C.P.F. sob nº ')
+
+    cpf = formatar_cpf(pessoa.cpf) if pessoa.cpf else 'não informado, '
+    result.append(f'{cpf}, ')
+
+    if pessoa.endereco:
+        result.append(f'com endereço na {pessoa.endereco}, ')
+    elif pessoa.end_profissional:
+        result.append(f'com endereço profissional na {pessoa.end_profissional}, ')
+
+    retorno = ' '.join(result).strip()
+
+    retorno = flexiona(retorno, feminino)
+    retorno = ajuste_geral(retorno)
+
+    return retorno
+
+def flexiona(texto, feminino):
+    if feminino:
+        texto = texto.replace("brasileiro", "brasileira")
+        texto = texto.replace("nato", "nata")
+        texto = texto.replace("solteiro", "solteira")
+        texto = texto.replace("viúvo", "viúva")
+        texto = texto.replace("separado", "separada")
+        texto = texto.replace("divorciado", "divorciada")
+        texto = texto.replace("amigado", "amigada")
+    return texto
+
+def ajuste_geral(texto):
+    try:
+        while ("  " in texto or
+            " ," in texto or
+            " ." in texto or
+            " ;" in texto or
+            "\n " in texto or
+            " \n" in texto or
+            "\n." in texto or
+            "\n\n" in texto):
+            texto = texto.replace("    ", "  ")
+            texto = texto.replace("   ", "  ")
+            texto = texto.replace("  ", " ")
+            texto = texto.replace(" ,", ",")
+            texto = texto.replace(" .", ".")
+            texto = texto.replace(" ;", ";")
+            texto = texto.replace("\n\n", "\n")
+            texto = texto.replace("\n ", "\n")
+            texto = texto.replace(" \n", "\n")
+            texto = texto.replace("\n.", ".")
+        return texto
+    except Exception as e:
+        raise ValueError("Erro no ajuste geral do texto") from e
+
+def upload_success_view(request):
     # Ler JSON da sessão
-    json_data = read_json_from_session(request)
-    pessoa_data = next((p for p in json_data if p['id'] == pessoa_id), None)
-    
-    if not pessoa_data:
-        return JsonResponse({'error': 'Pessoa não encontrada no JSON da sessão'}, status=404)
-    # print({json.dumps(pessoa)})
-    messages_to_model = [
-        {"role": "system", "content": "Responda em português."},
-        {"role": "assistant", "content": "Cumpra exatamente as instruções passadas e nao adicione informações de qualquer natureza, a menos que instruido a fazer isso."},
-        {"role": "user", "content": "Qualifique todas as partes no arquivo Json que eu mandar em forma de texto fluido, de acordo com o exemplo fornecido."},
-        {"role": "user", "content": "Eu nao quero dados estruturados, eu quero que voce os converta em um texto amigável e fluido."},
-        {"role": "user", "content": "Se não obtiver alguma informação, indique que 'não foi esclarecida', 'não apurado', 'não informado' ou coisa semelhante."},
-        {"role": "user", "content": "Para introduzir o numero do CPF prefira formulas como 'inscrito no C.P.F. sob nº'"},
-        {"role": "user", "content": "Para introduzir o numero do documento de identidade, 'portador do documento de identidade nº %NUMERO%,' e acrescente o órgão emissor, se houver a informação, 'emitido por %ORGAO%'."},
-        {"role": "user", "content": "Ajuste o uso de maiusculas e minusculas na grafia do endereço."},
-        {"role": "user", "content": "Forneça apenas o conteúdo solicitado, nenhum texto adicional."},
-        {"role": "user", "content": "Para calcular a idade das pessoas, considera 12/04/2017 como data do fato."},
-        {"role": "user", "content": f"Aqui está o arquivo JSON:\n{json.dumps(pessoa)}"},
-        {"role": "user", "content": "Exemplo de formato: '%NOME%, brasileiro nato, casado, profissão não esclarecida, ensino fundamental incompleto, portador do R.G. nº 0987654321, inscrito no C.P.F. sob nº 444.444.444-44, filho de Frederick Flintstone e de Godofreda Flintstone, natural de local não apurado, nascido em 30 de janeiro de 1950, contando 71 anos na época do fato, de pele preta, com endereço na Rua Contabilista Vitor Brum, 67 - Bela Vista - Alvorada, celular (51) 99999-6666, CEP 94814-595*;'"},
-    ]
-    # print(messages_to_model)
-    response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=messages_to_model,
-            max_tokens=2000,
-            n=1,
-            stop=None,
-            temperature=0.1,
-        )
-    # print(response)
-    resposta = response.choices[0].message.content
-    print(resposta)
-#'sk-svcacct-EXykCFQCf4COIUhM1mu6HIvt5RnG2qPl3HcwX2elys35GhtOo214Gk0IJz-rCFT3BlbkFJNBl8o6YDoGGjIofn9fCkaybTfXhCfQ_iQsLfbHVyGRK16vPltLBr2J_DPzJQcA'
-    # resposta = completion.choices[0].message.content
+    try:
+        participantes_json = read_json_from_session(request)
+        print("Dados da sessão lidos:", participantes_json)  # Adicionar print para depuração
+    except json.JSONDecodeError as e:
+        print("Erro ao decodificar JSON:", e)
+        participantes_json = []
 
-    # Atualizar JSON com qualificação na sessão
-    for p in json_data:
-        if p['id'] == pessoa_id:
-            p['qualificacao'] = resposta
-            break
-    write_json_to_session(request, json_data)
-    
-    return JsonResponse({'id': pessoa_id, 'qualificacao': resposta})
+    pessoas = []
+
+    for idx, p in enumerate(participantes_json):
+        if not isinstance(p, dict):
+            print(f"Ignorando participante {idx}: não é um dicionário")
+            continue
+
+        pessoa_id = p.get('id', idx)
+        pessoa = Pessoa(
+            id=pessoa_id,
+            condicao=p.get('Condicao', '').strip(),
+            alcunha=p.get('Alcunha', ''),
+            nome=p.get('Nome', '').strip(),
+            nome_pai=p.get('Pai', ''),
+            nome_mae=p.get('Mae', ''),
+            data_nascimento=datetime.strptime(p.get('Data_Nascimento', ''), "%d/%m/%Y").date() if p.get('Data_Nascimento') else None,
+            sexo=p.get('Sexo', '').strip(),
+            cpf=p.get('CPF', ''),
+            cor_pele=p.get('Cor_Pele', ''),
+            estado_civil=p.get('Estado_Civil', ''),
+            grau_instrucao=p.get('Grau_de_Instrucao', ''),
+            naturalidade=p.get('Natural_Cidade', ''),
+            naturalidade_UF=p.get('Natural_UF', ''),
+            nacionalidade=p.get('Nacionalidade', ''),
+            documento=p.get('Documento', ''),
+            numero_documento=p.get('No_Documento', ''),
+            endereco=p.get('Endereco', ''),
+            end_profissional=p.get('Endereco_Profissional', ''),
+            profissao=p.get('Profissao', ''),
+            representa=p.get('Representa', False)
+        )
+
+        pessoa.qualificacao = qualificar_pessoa(pessoa)
+        pessoas.append(pessoa)
+
+    print("Pessoas a serem passadas para o template:", pessoas)  # Adicionar print para depuração
+
+    return render(request, 'extrator/success.html', {'pessoas': pessoas})
+
+# Função para ler JSON da sessão
+def read_json_from_session(request):
+    json_data = request.session.get('participantes', '[]')
+    print("Dados da sessão brutos:", json_data)  # Adicionar print para depuração
+    if isinstance(json_data, str):
+        try:
+            return json.loads(json_data)
+        except json.JSONDecodeError as e:
+            print("Erro ao decodificar JSON da sessão:", e)
+            return []
+    return json_data
+
+# Função para escrever JSON na sessão
+def write_json_to_session(request, data):
+    if not isinstance(data, list):
+        print("Dados fornecidos não são uma lista.")
+        return
+    for item in data:
+        if not isinstance(item, dict):
+            print(f"Item não é um dicionário: {item}")
+            return
+    request.session['participantes'] = json.dumps(data)

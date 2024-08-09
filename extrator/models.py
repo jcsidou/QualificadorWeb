@@ -34,4 +34,4 @@ class Pessoa(models.Model):
     representa = models.BooleanField(default=False, blank=True, null=True)
     
     def __str__(self):
-        return self.nome
+        return self.nome if self.nome else "Pessoa sem nome"

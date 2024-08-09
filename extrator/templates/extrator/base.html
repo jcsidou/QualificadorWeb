@@ -32,6 +32,12 @@
         return cpf;
     }
     
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.person-card input[name="cpf"]').forEach(function(input) {
+            input.value = formatarCPF(input.value);
+        });
+    });
+
     function validarCPF(cpf) {
         cpf = cpf.replace(/\D/g, '');
         if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) {
@@ -53,7 +59,7 @@
         if (resto === 10 || resto === 11) resto = 0;
         if (resto !== parseInt(cpf.substring(10, 11))) return false;
         return true;
-    }
+    };
     
     document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('input[name="cpf"]').forEach(function(input) {
@@ -65,6 +71,33 @@
                     value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
                 }
                 event.target.value = value;
+            });
+        });
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const updateQualification = (form) => {
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+    
+            fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': form.querySelector('[name="csrfmiddlewaretoken"]').value,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                form.querySelector('.qualificacao').innerText = data.qualificacao;
+            })
+            .catch(error => console.error('Error:', error));
+        };
+    
+        document.querySelectorAll('.person-card form').forEach(form => {
+            form.querySelectorAll('input, select').forEach(input => {
+                input.addEventListener('change', () => updateQualification(form));
             });
         });
     });
