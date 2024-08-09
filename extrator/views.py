@@ -352,7 +352,6 @@ def remove_person(request, id):
 # Qualificar todas as pessoas
 def qualificar_todos(request):
     client = OpenAI(api_key=openai_api_key)
-                    # 'sk-svcacct-EXykCFQCf4COIUhM1mu6HIvt5RnG2qPl3HcwX2elys35GhtOo214Gk0IJz-rCFT3BlbkFJNBl8o6YDoGGjIofn9fCkaybTfXhCfQ_iQsLfbHVyGRK16vPltLBr2J_DPzJQcA')
     if request.method == 'POST':
         json_content = read_json_from_session(request)
 
