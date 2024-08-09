@@ -3,10 +3,23 @@
 {% block content %}
 <h2 class="title-shadow">Carregar a ocorrência</h2>
 <form method="post" enctype="multipart/form-data">
-    
     {% csrf_token %}
-    {{ form.as_p }}
-    <button button class="action-button btn-common" type="submit">Upload</button>
+    <label for="file-upload" class="action-button btn-common">Escolher arquivo</label>
+    <input id="file-upload" type="file" name="file" style="display: none;" required>
+    <span id="file-chosen">Nenhum arquivo escolhido</span>
+    <button type="submit" class="action-button btn-common">Upload</button>
 </form>
-{% endblock %}
 
+<script>
+document.getElementById('file-upload').addEventListener('change', function() {
+    const fileName = this.files[0].name;
+    document.getElementById('file-chosen').textContent = fileName;
+});
+
+document.querySelector('label[for="file-upload"]').addEventListener('click', function(event) {
+    // Impedir o evento padrão para garantir que o clique não seja duplicado
+    event.preventDefault();
+    document.getElementById('file-upload').click();
+});
+</script>
+{% endblock %}
