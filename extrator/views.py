@@ -14,6 +14,66 @@ import numpy as np
 from datetime import datetime
 from openai import OpenAI
 
+# Carregar a chave API do arquivo settings.json
+with open('./settings.json') as f:
+    settings = json.load(f)
+    openai_api_key = settings.get('OpenAI_API_KEY')
+
+# Substituições para as condições
+CONDICOES_SUBSTITUICOES = {
+    'Vítima': 'Vítima',
+    'Vitima': 'Vítima',
+    'Ofendida': 'Vítima',
+    'Ofendido': 'Vítima',
+    'Testemunha': 'Testemunha',
+    'Comunicante': 'Testemunha',
+    'Condutor': 'Testemunha',
+    'Só Comunicante': 'Testemunha',
+    'Flagrado': 'Agente',
+    'Suspeito': 'Agente',
+    'Indiciado': 'Agente',
+    'Autor': 'Agente',
+    'Adolescente': 'Agente',
+    'Adolescente Infrator': 'Agente',
+    'Acusado': 'Agente',
+    'Denunciado': 'Agente',
+    'Motorista': 'Agente'
+}
+
+def limpar_texto(texto):
+    if (not texto):
+            return None
+    # Substituir marcas de parágrafo e quebras de linha por espaços
+    texto = re.sub(r'\n', ' ', texto)
+    # Remover espaços duplos
+    texto = re.sub(r'\s+', ' ', texto)
+    # Remover espaços antes de sinais de pontuação
+    texto = re.sub(r'\s+([.,;?!])', r'\1', texto)
+    return texto.strip()
+
+def atualizar_condicao(condicao):
+    for chave, valor in CONDICOES_SUBSTITUICOES.items():
+        if chave in condicao:
+            return valor
+    return condicao
+
+def formatar_ensino(grau_instrucao):
+    try:
+        return re.sub(r' completo', '', grau_instrucao)
+    except:
+        return None
+
+def extrair_numeros(cpf):
+    if (not cpf):
+        return None
+    return re.sub(r'\D', '', cpf)
+
+def formatar_cpf(cpf):
+    cpf = extrair_numeros(cpf)
+    if len(cpf) == 11:
+        return f"{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:]}"
+    return cpf
+
 def extrair_texto_pdf(arquivo):
     # Função para extrair texto de um PDF
     leitor_pdf = PdfReader(arquivo)
@@ -55,6 +115,8 @@ def realizar_ocr(arquivo):
     return texto
 
 def limpar_e_extrair(texto, regex_parametros):
+    if (not texto):
+        return None
     # Função para limpar e extrair informações usando regex
     dados_extracao = {}
     for chave, padrao in regex_parametros.items():
@@ -95,35 +157,41 @@ def upload_file_view(request):
 
                 # Criar objeto Pessoa com os dados extraídos
                 pessoa = Pessoa(
-                    nome=participante.get('Nome', ''),
-                    condicao=participante.get('Condicao', ''),
-                    alcunha='',
-                    nome_pai=participante.get('Pai', ''),
-                    nome_mae=participante.get('Mae', ''),
+                    nome=limpar_texto(participante.get('Nome', '')),
+                    condicao=atualizar_condicao(limpar_texto(participante.get('Condicao', ''))),
+                    # alcunha=limpar_texto('',
+                    nome_pai=limpar_texto(participante.get('Pai', '')),
+                    nome_mae=limpar_texto(participante.get('Mae', '')),
                     data_nascimento=data_nascimento,
-                    sexo=participante.get('Sexo', ''),
-                    cpf=participante.get('CPF', ''),
-                    estado_civil=participante.get('Estado_Civil', ''),
-                    grau_instrucao=participante.get('Grau_de_Instrucao', ''),
-                    cor_pele=participante.get('Cor_Pele', ''),
-                    naturalidade=participante.get('Natural_Cidade', ''),
-                    naturalidade_UF = participante.get('Natural_UF', ''),
-                    nacionalidade=participante.get('Nacionalidade', ''),
-                    documento=participante.get('Documento', ''),
-                    numero_documento=participante.get('No_Documento', ''),
-                    endereco=participante.get('Endereco', ''),
-                    profissao=participante.get('Profissao', ''),
-                    end_profissional=participante.get('Endereco_Profissional', ''),
-                    representa=False,
+                    sexo=limpar_texto(participante.get('Sexo', '')),
+                    cpf=extrair_numeros(limpar_texto(participante.get('CPF', ''))),
+                    estado_civil=limpar_texto(participante.get('Estado_Civil', '')),
+                    grau_instrucao=formatar_ensino(limpar_texto(participante.get('Grau_de_Instrucao', ''))).capitalize,
+                    cor_pele=limpar_texto(participante.get('Cor_Pele', '')),
+                    naturalidade=limpar_texto(participante.get('Natural_Cidade', '')),
+                    naturalidade_UF =limpar_texto( participante.get('Natural_UF', '')),
+                    nacionalidade=limpar_texto(participante.get('Nacionalidade', '')),
+                    documento=limpar_texto(participante.get('Documento', '')),
+                    numero_documento=limpar_texto(participante.get('No_Documento', '')),
+                    endereco=limpar_texto(participante.get('Endereco', '')),
+                    profissao=limpar_texto(participante.get('Profissao', '')),
+                    end_profissional=limpar_texto(participante.get('Endereco_Profissional', '')),
+                    # representa=limpar_texto(False,
                     )
+
+                print(pessoa.nome)
+                print(pessoa.condicao)
+                print(pessoa.grau_instrucao)
+                print(pessoa.cpf)
+                
                 pessoa.save()
                 pessoas_criadas.append(pessoa)
                 
             # Converter lista de dicionários para JSON
             participantes_json = json.dumps(participantes, indent=4, ensure_ascii=False)
-            print(participantes_json)
-            with open("participantes.json", "w", encoding='utf-8') as f:
-                f.write(participantes_json)
+            # print(participantes_json)
+            # with open("participantes.json", "w", encoding='utf-8') as f:
+            #     f.write(participantes_json)
                 
             write_json_to_session(request, participantes_json)
 
@@ -214,6 +282,17 @@ def alterar_pessoa(request, pessoa_id):
 def add_person(request):
     if request.method == 'POST':
         data = json.loads(request.body)
+        # Limpar os dados de entrada
+        for key in data:
+            if isinstance(data[key], str):
+                data[key] = limpar_texto(data[key])
+        # Atualizar condição
+        data['condicao'] = atualizar_condicao(data.get('condicao', ''))
+        # Atualizar grau de instrução
+        data['grau_instrucao'] = formatar_ensino(data.get('grau_instrucao', ''))
+        # Extrair apenas números do CPF
+        data['cpf'] = extrair_numeros(data.get('cpf', ''))
+
         pessoa = Pessoa.objects.create(
             condicao=data['condicao'],
             alcunha=data['alcunha'],
@@ -268,7 +347,8 @@ def remove_person(request, id):
 
 # Qualificar todas as pessoas
 def qualificar_todos(request):
-    client = OpenAI(api_key='sk-svcacct-EXykCFQCf4COIUhM1mu6HIvt5RnG2qPl3HcwX2elys35GhtOo214Gk0IJz-rCFT3BlbkFJNBl8o6YDoGGjIofn9fCkaybTfXhCfQ_iQsLfbHVyGRK16vPltLBr2J_DPzJQcA')
+    client = OpenAI(api_key=openai_api_key)
+                    # 'sk-svcacct-EXykCFQCf4COIUhM1mu6HIvt5RnG2qPl3HcwX2elys35GhtOo214Gk0IJz-rCFT3BlbkFJNBl8o6YDoGGjIofn9fCkaybTfXhCfQ_iQsLfbHVyGRK16vPltLBr2J_DPzJQcA')
     if request.method == 'POST':
         json_content = read_json_from_session(request)
 
@@ -289,7 +369,7 @@ def qualificar_todos(request):
             {"role": "user", "content": f"Aqui está o arquivo JSON:\n{json_str}"},
             {"role": "user", "content": f"""Exemplo de formato, onde %% indicam uma variável fornecida: '%NOME%, %nacionalidade%, %estado_civil%, %profissao%, %Grau_de_Instrucao%, portador do %Documento_Tipo% nº %No_documento%, , inscrito no C.P.F. sob nº %CPF%, filho de %Pai% e de %Mae%, natural de %Natural_Cidade%/%Natural_UF%, nascido em %data_nascimento(por extenso)%, contando %idade_nos_fatos% anos na época do fato, de pele %pele%, com endereço na %endereço%'"""},            
         ]
-        print(messages_to_model)
+        # print(messages_to_model)
         response = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=messages_to_model,
@@ -298,7 +378,7 @@ def qualificar_todos(request):
                 stop=None,
                 temperature=0.1,
             )
-        print(response)
+        # print(response)
         resposta = response.choices[0].message.content
         print(resposta)
 
@@ -316,7 +396,7 @@ def write_json_to_session(request, data):
         
 # Qualificar pessoa individualmente
 def qualificar_pessoa(request, pessoa_id):
-    print('QUALIDICA')
+
     pessoa = get_object_or_404(Pessoa, id=pessoa_id)
     client = OpenAI(api_key='sk-svcacct-EXykCFQCf4COIUhM1mu6HIvt5RnG2qPl3HcwX2elys35GhtOo214Gk0IJz-rCFT3BlbkFJNBl8o6YDoGGjIofn9fCkaybTfXhCfQ_iQsLfbHVyGRK16vPltLBr2J_DPzJQcA')
     
@@ -326,7 +406,7 @@ def qualificar_pessoa(request, pessoa_id):
     
     if not pessoa_data:
         return JsonResponse({'error': 'Pessoa não encontrada no JSON da sessão'}, status=404)
-    print({json.dumps(pessoa)})
+    # print({json.dumps(pessoa)})
     messages_to_model = [
         {"role": "system", "content": "Responda em português."},
         {"role": "assistant", "content": "Cumpra exatamente as instruções passadas e nao adicione informações de qualquer natureza, a menos que instruido a fazer isso."},
@@ -341,7 +421,7 @@ def qualificar_pessoa(request, pessoa_id):
         {"role": "user", "content": f"Aqui está o arquivo JSON:\n{json.dumps(pessoa)}"},
         {"role": "user", "content": "Exemplo de formato: '%NOME%, brasileiro nato, casado, profissão não esclarecida, ensino fundamental incompleto, portador do R.G. nº 0987654321, inscrito no C.P.F. sob nº 444.444.444-44, filho de Frederick Flintstone e de Godofreda Flintstone, natural de local não apurado, nascido em 30 de janeiro de 1950, contando 71 anos na época do fato, de pele preta, com endereço na Rua Contabilista Vitor Brum, 67 - Bela Vista - Alvorada, celular (51) 99999-6666, CEP 94814-595*;'"},
     ]
-    print(messages_to_model)
+    # print(messages_to_model)
     response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=messages_to_model,
@@ -350,7 +430,7 @@ def qualificar_pessoa(request, pessoa_id):
             stop=None,
             temperature=0.1,
         )
-    print(response)
+    # print(response)
     resposta = response.choices[0].message.content
     print(resposta)
 #'sk-svcacct-EXykCFQCf4COIUhM1mu6HIvt5RnG2qPl3HcwX2elys35GhtOo214Gk0IJz-rCFT3BlbkFJNBl8o6YDoGGjIofn9fCkaybTfXhCfQ_iQsLfbHVyGRK16vPltLBr2J_DPzJQcA'

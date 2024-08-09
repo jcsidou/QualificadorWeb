@@ -20,8 +20,9 @@
                         <th>Condição</th>
                         <td>
                             <select name="condicao" class="form-select">
-                                <option value="Condutor Presente" {% if pessoa.condicao == 'Condutor Presente' %}selected{% endif %}>Condutor Presente</option>
-                                <option value="Condutor Ausente" {% if pessoa.condicao == 'Condutor Ausente' %}selected{% endif %}>Condutor Ausente</option>
+                                <option value="Agente" {% if pessoa.condicao == 'Agente' %}selected{% endif %}>Agente</option>
+                                <option value="Vítima" {% if pessoa.condicao == 'Vítima' %}selected{% endif %}>Vítima</option>
+                                <option value="Testemunha" {% if pessoa.condicao == 'Testemunha' %}selected{% endif %}>Testemunha</option>
                             </select>
                         </td>
                         <th>Alcunha</th>
@@ -61,12 +62,12 @@
                         <th>Instrução</th>
                         <td>
                             <select name="grau_instrucao" class="form-select">
-                                <option value="Ensino Fundamental Incompleto" {% if pessoa.grau_instrucao == 'Ensino Fundamental Incompleto' %}selected{% endif %}>Ensino Fundamental Incompleto</option>
-                                <option value="Ensino Fundamental Completo" {% if pessoa.grau_instrucao == 'Ensino Fundamental Completo' %}selected{% endif %}>Ensino Fundamental Completo</option>
-                                <option value="Ensino Médio Incompleto" {% if pessoa.grau_instrucao == 'Ensino Médio Incompleto' %}selected{% endif %}>Ensino Médio Incompleto</option>
-                                <option value="Ensino Médio Completo" {% if pessoa.grau_instrucao == 'Ensino Médio Completo' %}selected{% endif %}>Ensino Médio Completo</option>
-                                <option value="Ensino Superior Incompleto" {% if pessoa.grau_instrucao == 'Ensino Superior Incompleto' %}selected{% endif %}>Ensino Superior Incompleto</option>
-                                <option value="Ensino Superior Completo" {% if pessoa.grau_instrucao == 'Ensino Superior Completo' %}selected{% endif %}>Ensino Superior Completo</option>
+                                <option value="Ensino fundamental incompleto" {% if pessoa.grau_instrucao == 'Ensino fundamental incompleto' %}selected{% endif %}>Ensino fundamental incompleto</option>
+                                <option value="Ensino fundamental" {% if pessoa.grau_instrucao == 'Ensino fundamental' %}selected{% endif %}>Ensino fundamental</option>
+                                <option value="Ensino médio incompleto" {% if pessoa.grau_instrucao == 'Ensino médio incompleto' %}selected{% endif %}>Ensino médio incompleto</option>
+                                <option value="Ensino médio" {% if pessoa.grau_instrucao == 'Ensino médio' %}selected{% endif %}>Ensino médio</option>
+                                <option value="Ensino superior incompleto" {% if pessoa.grau_instrucao == 'Ensino superior incompleto' %}selected{% endif %}>Ensino superior incompleto</option>
+                                <option value="Ensino superior" {% if pessoa.grau_instrucao == 'Ensino superior' %}selected{% endif %}>Ensino superior</option>
                             </select>
                         </td>
                     </tr>
@@ -259,8 +260,9 @@ document.getElementById('add-person-form').addEventListener('submit', function(e
                         <th>Condição</th>
                         <td>
                             <select name="condicao" class="form-select">
-                                <option value="Condutor Presente" ${person.condicao == 'Condutor Presente' ? 'selected' : ''}>Condutor Presente</option>
-                                <option value="Condutor Ausente" ${person.condicao == 'Condutor Ausente' ? 'selected' : ''}>Condutor Ausente</option>
+                                <option value="Agente" ${person.condicao == 'Agente' ? 'selected' : ''}>Agente</option>
+                                <option value="Vítima" ${person.condicao == 'Vítima' ? 'selected' : ''}>Vítima Ausente</option>
+                                <option value="Vítima" ${person.condicao == 'Testemunha' ? 'selected' : ''}>Testemunha</option>
                             </select>
                         </td>
                         <th>Alcunha</th>
