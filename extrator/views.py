@@ -132,6 +132,9 @@ def limpar_e_extrair(texto, regex_parametros):
             dados_extracao[chave] = match.group(1)
     return dados_extracao
 
+def remove_newlines(d):
+    return {k: (v.replace('\n', ' ').strip() if isinstance(v, str) else v) for k, v in d.items()}
+
 # View para upload de arquivo
 @csrf_exempt
 def upload_file_view(request):
@@ -144,14 +147,19 @@ def upload_file_view(request):
             arquivo = request.FILES['file']
             if arquivo.name.endswith('.pdf'):
                 texto = extrair_texto_pdf(arquivo)
-                regex = r"Participante:\s+(?P<Np_Participante>\d+)\s+-\s+(?P<Condicao>\w*\s?\w*)\s*(?P<Presente>\w+)?\nEndere.o:\s+(?P<Endereco>.*\n?.*\n)Endere.o\s\w+:(?P<Endereco_Profissional>.*)([\w*\s]*\?\s?(?P<Requer_Protetiva>Sim|Não))?Estado\sCivil:\s+(?P<Estado_Civil>.*).*\sGrau\sde\s.nstru..o:\s(?P<Grau_de_Instrucao>[\s\S\n]{,30})?Cor.\w+:\s(?P<Cor_Pele>.*)\nNaturalidade:\s((?P<Natural_Cidade>.*)[\n|\s](?P<Natural_UF>[A-Z]{2}))?\s?Nacionalidade:\s(?P<Nacionalidade>.*)\sCor .lhos:\s(?P<Cor_olhos>[A-Z][a-z|\s]*)(?P<Nome>[[A-Z|\s]*)\sNome:\s(?P<Pai>[\w|\s|-]*)\s\/\s(?P<Mae>[\w|\s|-]*)\sPai.*\n\w*\s\w+:\s(?P<Data_Nascimento>\d{2}/\d{2}/\d{4})\sSexo:\s(?P<Sexo>\w*\s?\w*)\sCPF:\s?(?P<CPF>(\d{3}\.\d{3}\.\d{3}.\d{2})?)\nDocumento:\s(?P<Documento>.*)\sNúmero:\s?(?P<No_Documento>\d*)\nProfi\w+:\s(?P<Profissao>.*)?Cargo:\s(?P<Cargo>.*)?Cond\w*\s\w*:\s(?P<Condicao_Fisica>.*)?"
+                regex = r"Participante:\s+(?P<No_Participante>\d+)\s+-\s+(?P<Condicao>\w*\s?\w*)\s*(?P<Presente>\w+)?\nEndere.o:\s+(?P<Endereco>.*\n?.*\n)Endere.o\s\w+:(?P<Endereco_Profissional>.*)([\w*\s]*\?\s?(?P<Requer_Protetiva>Sim|Não))?Estado\sCivil:\s+(?P<Estado_Civil>.*).*\sGrau\sde\s.nstru..o:\s(?P<Grau_de_Instrucao>[\s\S\n]{,30})?Cor.\w+:\s(?P<Cor_Pele>.*)\nNaturalidade:\s((?P<Natural_Cidade>.*)[\n|\s](?P<Natural_UF>[A-Z]{2}))?\s?Nacionalidade:\s(?P<Nacionalidade>.*)\sCor .lhos:\s(?P<Cor_olhos>[A-Z][a-z|\s]*)(?P<Nome>[[A-Z|\s]*)\sNome:\s(?P<Pai>[\w|\s|-]*)\s\/\s(?P<Mae>[\w|\s|-]*)\sPai.*\n\w*\s\w+:\s(?P<Data_Nascimento>\d{2}/\d{2}/\d{4})\sSexo:\s(?P<Sexo>\w*\s?\w*)\sCPF:\s?(?P<CPF>(\d{3}\.\d{3}\.\d{3}.\d{2})?)\nDocumento:\s(?P<Documento>.*)\sNúmero:\s?(?P<No_Documento>\d*)\nProfi\w+:\s(?P<Profissao>.*)?Cargo:\s(?P<Cargo>.*)?Cond\w*\s\w*:\s(?P<Condicao_Fisica>.*)?"
             else:
                 texto = realizar_ocr(arquivo)
-
+            
             matches = re.finditer(regex, texto, re.MULTILINE)
             participantes = []
             for matchNum, match in enumerate(matches, start=1):
                 participante = match.groupdict()
+                # for key, value in participante.items():
+                #     if value:
+                #         participante[key] = value.replace('\n', ' ') 
+                #         participante[key] = value.replace('  ', ' ') 
+                #     print(key, value)
                 # Adicionar ID único para cada participante
                 participante['id'] = matchNum
                 participantes.append(participante)
@@ -170,7 +178,7 @@ def upload_file_view(request):
                 # pessoa = Pessoa(
                 #     nome=limpar_texto(participante.get('Nome', '')),
                 #     condicao=atualizar_condicao(limpar_texto(participante.get('Condicao', ''))),
-                #     nome_pai=limpar_texto(participante.get('Pai', '')),
+                #     nome_pai=participante.get('Pai', '')),
                 #     nome_mae=limpar_texto(participante.get('Mae', '')),
                 #     data_nascimento=data_nascimento,
                 #     sexo=limpar_texto(participante.get('Sexo', '')),
@@ -191,12 +199,13 @@ def upload_file_view(request):
                 # pessoa.save()
 
             # Converter lista de dicionários para JSON
-            participantes_json = json.dumps(participantes, indent=4, ensure_ascii=False)
-            print("Participantes JSON:", participantes_json)  # Adicionar print para depuração
-            write_json_to_session(request, participantes)
+            participantes_sem_quebras = [remove_newlines(d) for d in participantes]
+            # participantes_json = json.dumps(participantes_sem_quebras, indent=4, ensure_ascii=False)
+            # print("Participantes JSON:", participantes_json)  # Adicionar print para depuração
+            write_json_to_session(request, participantes_sem_quebras)
 
             # Verificar se os dados foram escritos na sessão
-            session_data = read_json_from_session(request)
+            # session_data = read_json_from_session(request)
             # print("Dados na sessão após escrita:", session_data)  # Adicionar print para depuração
             
             return redirect('upload_success')
