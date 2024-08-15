@@ -1,14 +1,12 @@
 from django.urls import path
 from . import views
-from .views import add_person, qualificar_todos, remove_person
 
 urlpatterns = [
     path('upload/', views.upload_file_view, name='upload_file'),
-    path('success/', views.upload_success_view, name='upload_success'),  # Adicione esta linha se não existir
-    path('alterar-condicao/<int:pessoa_id>/', views.alterar_condicao, name='alterar_condicao'),
-    path('alterar-pessoa/<int:pessoa_id>/', views.alterar_pessoa, name='alterar_pessoa'),
-    path('add-person-api-endpoint', add_person, name='add_person'),
-    path('api/qualificar-todos', qualificar_todos, name='qualificar_todos'),
-    path('remove-person/<int:id>/', remove_person, name='remove_person'),
+    path('success/', views.upload_success_view, name='upload_success'),
+    # path('alterar-condicao/<str:pessoa_id>/', views.alterar_condicao, name='alterar_condicao'),
+    path('add-person/', views.add_person, name='add_person'),
+    path('alterar-pessoa/<str:pessoa_id>/', views.alterar_pessoa, name='alterar_pessoa'),
+    path('remove-person/<str:id>/', views.remove_person, name='remove_person'),
+    path('atualizar_qualificacao/<int:pessoa_id>/', views.atualizar_qualificacao, name='atualizar_qualificacao'),
 ]
-

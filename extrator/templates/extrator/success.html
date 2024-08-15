@@ -8,108 +8,102 @@
 </div>
 <div class="container" id="pessoa-container">
     {% for pessoa in pessoas %}
-        {% if pessoa.id %}
-            <div class="person-card" id="person-{{ pessoa.id }}">
-                <form method="post" action="{% url 'alterar_pessoa' pessoa.id %}">
-                    {% csrf_token %}
-                    <input type="hidden" name="id" value="{{ pessoa.id }}">
-                    <table class="table">
-                        <tr>
-                            <th>Condição</th>
-                            <td>
-                                <select name="condicao" class="form-select">
-                                    <option value="Agente" {% if pessoa.condicao == 'Agente' %}selected{% endif %}>Agente</option>
-                                    <option value="Vítima" {% if pessoa.condicao == 'Vítima' %}selected{% endif %}>Vítima</option>
-                                    <option value="Testemunha" {% if pessoa.condicao == 'Testemunha' %}selected{% endif %}>Testemunha</option>
-                                </select>
-                            </td>
-                            <th>Alcunha</th>
-                            <td><input type="text" name="alcunha" class="input-field" value="{{ pessoa.alcunha }}"></td>
-                        </tr>
-                        <tr>
-                            <th>Nome</th>
-                            <td colspan="3"><input type="text" name="nome" class="input-field" value="{{ pessoa.nome }}"></td>
-                        </tr>
-                        <tr>
-                            <th>Pai</th>
-                            <td><input type="text" name="nome_pai" class="input-field" value="{{ pessoa.nome_pai }}"></td>
-                            <th>Mãe</th>
-                            <td><input type="text" name="nome_mae" class="input-field" value="{{ pessoa.nome_mae }}"></td>
-                        </tr>
-                        <tr>
-                            <th>Nascimento</th>
-                            <td><input type="date" name="data_nascimento" class="input-field date-input" value="{{ pessoa.data_nascimento|date:'Y-m-d' }}" placeholder="DD/MM/YYYY"></td>
-                            <th>Sexo</th>
-                            <td>
-                                <select name="sexo" class="form-select">
-                                    <option value="Masculino" {% if pessoa.sexo == 'Masculino' %}selected{% endif %}>Masculino</option>
-                                    <option value="Feminino" {% if pessoa.sexo == 'Feminino' %}selected{% endif %}>Feminino</option>
-                                    <option value="Outro" {% if pessoa.sexo == 'Outro' %}selected{% endif %}>Outro</option>
-                                </select>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th>CPF</th>
-                            <td><input type="text" name="cpf" class="input-field" value="{{ pessoa.cpf }}"></td>
-                            <th>Cor Pele</th>
-                            <td><input type="text" name="cor_pele" class="input-field" value="{{ pessoa.cor_pele }}"></td>
-                        </tr>
-                        <tr>
-                            <th>Estado Civil</th>
-                            <td><input type="text" name="estado_civil" class="input-field" value="{{ pessoa.estado_civil }}"></td>
-                            <th>Instrução</th>
-                            <td>
-                                <select name="grau_instrucao" class="form-select">
-                                    <option value="Ensino fundamental incompleto" {% if pessoa.grau_instrucao == 'Ensino fundamental incompleto' %}selected{% endif %}>Ensino fundamental incompleto</option>
-                                    <option value="Ensino fundamental" {% if pessoa.grau_instrucao == 'Ensino fundamental' %}selected{% endif %}>Ensino fundamental</option>
-                                    <option value="Ensino médio incompleto" {% if pessoa.grau_instrucao == 'Ensino médio incompleto' %}selected{% endif %}>Ensino médio incompleto</option>
-                                    <option value="Ensino médio" {% if pessoa.grau_instrucao == 'Ensino médio' %}selected{% endif %}>Ensino médio</option>
-                                    <option value="Ensino superior incompleto" {% if pessoa.grau_instrucao == 'Ensino superior incompleto' %}selected{% endif %}>Ensino superior incompleto</option>
-                                    <option value="Ensino superior" {% if pessoa.grau_instrucao == 'Ensino superior' %}selected{% endif %}>Ensino superior</option>
-                                </select>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th>Naturalidade</th>
-                            <td>
-                                <input type="text" name="naturalidade" class="input-field naturalidade-input" value="{{ pessoa.naturalidade }}"> /
-                                <input type="text" name="naturalidade_UF" class="input-field uf-input" value="{{ pessoa.naturalidade_UF }}">
-                            </td>
-                            <th>Nacionalidade</th>
-                            <td><input type="text" name="nacionalidade" class="input-field" value="{{ pessoa.nacionalidade }}"></td>
-                        </tr>
-                        <tr>
-                            <th>Tipo Doc.</th>
-                            <td><input type="text" name="documento" class="input-field" value="{{ pessoa.documento }}"></td>
-                            <th>Nº Doc.</th>
-                            <td><input type="text" name="numero_documento" class="input-field" value="{{ pessoa.numero_documento }}"></td>
-                        </tr>
-                        <tr>
-                            <th>Endereço</th>
-                            <td colspan="3"><input type="text" name="endereco" class="input-field" value="{{ pessoa.endereco }}"></td>
-                        </tr>
-                        <tr>
-                            <th>End. Prof.</th>
-                            <td colspan="3"><input type="text" name="end_profissional" class="input-field" value="{{ pessoa.end_profissional }}"></td>
-                        </tr>
-                        <tr>
-                            <th>Profissão</th>
-                            <td><input type="text" name="profissao" class="input-field" value="{{ pessoa.profissao }}"></td>
-                            <th>Representa</th>
-                            <td><input type="checkbox" name="representa" class="checkbox-field" {% if pessoa.representa %}checked{% endif %}></td>
-                        </tr>
-                    </table>
-                </form>
-                <div class="qualificacao">
-                    <p id="qualificacao-{{ pessoa.id }}">
-                        {{ pessoa.qualificacao|default:"Qualificação não disponível." }}
-                    </p>
-                </div>
-                <button type="submit" class="btn-common">Salvar Alterações</button>
-                <button class="btn-common" onclick="copyToClipboard('{{ pessoa.id }}')">Copiar Qualificação</button>
-                <button class="btn-common" onclick="removePerson('{{ pessoa.id }}')">Remover Pessoa</button>
+        <div class="person-card" id="person-{{ pessoa.id }}">
+            <form method="post" action="{% url 'alterar_pessoa' pessoa.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="id" value="{{ pessoa.id }}">
+                <table class="table">
+                    <tr>
+                        <th>Condição</th>
+                        <td>
+                            <select name="condicao" class="form-select" data-person-id="{{ pessoa.id }}">
+                                <option value="Agente" {% if pessoa.condicao == 'Agente' %}selected{% endif %}>Agente</option>
+                                <option value="Vítima" {% if pessoa.condicao == 'Vítima' %}selected{% endif %}>Vítima</option>
+                                <option value="Testemunha" {% if pessoa.condicao == 'Testemunha' %}selected{% endif %}>Testemunha</option>
+                            </select>
+                        </td>
+                        <th>Alcunha</th>
+                        <td><input type="text" name="alcunha" class="input-field" value="{{ pessoa.alcunha }}" data-person-id="{{ pessoa.id }}"></td>
+                    </tr>
+                    <tr>
+                        <th>Nome</th>
+                        <td colspan="3"><input type="text" name="nome" class="input-field" value="{{ pessoa.nome }}" data-person-id="{{ pessoa.id }}"></td>
+                    </tr>
+                    <tr>
+                        <th>Pai</th>
+                        <td><input type="text" name="nome_pai" class="input-field" value="{{ pessoa.nome_pai }}" data-person-id="{{ pessoa.id }}"></td>
+                        <th>Mãe</th>
+                        <td><input type="text" name="nome_mae" class="input-field" value="{{ pessoa.nome_mae }}" data-person-id="{{ pessoa.id }}"></td>
+                    </tr>
+                    <tr>
+                        <th>Nascimento</th>
+                        <td><input type="date" name="data_nascimento" class="input-field date-input" value="{{ pessoa.data_nascimento|date:'Y-m-d' }}" data-person-id="{{ pessoa.id }}"></td>
+                        <th>Sexo</th>
+                        <td>
+                            <select name="sexo" class="form-select" data-person-id="{{ pessoa.id }}">
+                                <option value="Masculino" {% if pessoa.sexo == 'Masculino' %}selected{% endif %}>Masculino</option>
+                                <option value="Feminino" {% if pessoa.sexo == 'Feminino' %}selected{% endif %}>Feminino</option>
+                                <option value="Outro" {% if pessoa.sexo == 'Outro' %}selected{% endif %}>Outro</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>CPF</th>
+                        <td><input type="text" name="cpf" class="input-field" value="{{ pessoa.cpf }}" data-person-id="{{ pessoa.id }}"></td>
+                        <th>Cor Pele</th>
+                        <td><input type="text" name="cor_pele" class="input-field" value="{{ pessoa.cor_pele }}" data-person-id="{{ pessoa.id }}"></td>
+                    </tr>
+                    <tr>
+                        <th>Estado Civil</th>
+                        <td><input type="text" name="estado_civil" class="input-field" value="{{ pessoa.estado_civil }}" data-person-id="{{ pessoa.id }}"></td>
+                        <th>Instrução</th>
+                        <td>
+                            <select name="grau_instrucao" class="form-select" data-person-id="{{ pessoa.id }}">
+                                <option value="Ensino fundamental incompleto" {% if pessoa.grau_instrucao == 'Ensino fundamental incompleto' %}selected{% endif %}>Ensino fundamental incompleto</option>
+                                <option value="Ensino fundamental" {% if pessoa.grau_instrucao == 'Ensino fundamental' %}selected{% endif %}>Ensino fundamental</option>
+                                <option value="Ensino médio incompleto" {% if pessoa.grau_instrucao == 'Ensino médio incompleto' %}selected{% endif %}>Ensino médio incompleto</option>
+                                <option value="Ensino médio" {% if pessoa.grau_instrucao == 'Ensino médio' %}selected{% endif %}>Ensino médio</option>
+                                <option value="Ensino superior incompleto" {% if pessoa.grau_instrucao == 'Ensino superior incompleto' %}selected{% endif %}>Ensino superior incompleto</option>
+                                <option value="Ensino superior" {% if pessoa.grau_instrucao == 'Ensino superior' %}selected{% endif %}>Ensino superior</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Naturalidade</th>
+                        <td>
+                            <input type="text" name="naturalidade" class="input-field naturalidade-input" value="{{ pessoa.naturalidade }}" data-person-id="{{ pessoa.id }}"> /
+                            <input type="text" name="naturalidade_UF" class="input-field uf-input" value="{{ pessoa.naturalidade_uf }}" data-person-id="{{ pessoa.id }}">
+                        </td>
+                        <th>Nacionalidade</th>
+                        <td><input type="text" name="nacionalidade" class="input-field" value="{{ pessoa.nacionalidade }}" data-person-id="{{ pessoa.id }}"></td>
+                    </tr>
+                    <tr>
+                        <th>Tipo Doc.</th>
+                        <td><input type="text" name="documento" class="input-field" value="{{ pessoa.documento }}" data-person-id="{{ pessoa.id }}"></td>
+                        <th>Nº Doc.</th>
+                        <td><input type="text" name="numero_documento" class="input-field" value="{{ pessoa.numero_documento }}" data-person-id="{{ pessoa.id }}"></td>
+                    </tr>
+                    <tr>
+                        <th>Endereço</th>
+                        <td colspan="3"><input type="text" name="endereco" class="input-field" value="{{ pessoa.endereco }}" data-person-id="{{ pessoa.id }}"></td>
+                    </tr>
+                    <tr>
+                        <th>End. Prof.</th>
+                        <td colspan="3"><input type="text" name="end_profissional" class="input-field" value="{{ pessoa.end_profissional }}" data-person-id="{{ pessoa.id }}"></td>
+                    </tr>
+                    <tr>
+                        <th>Profissão</th>
+                        <td><input type="text" name="profissao" class="input-field" value="{{ pessoa.profissao }}" data-person-id="{{ pessoa.id }}"></td>
+                        <th>Representa</th>
+                        <td><input type="checkbox" name="representa" class="checkbox-field" {% if pessoa.representa %}checked{% endif %} data-person-id="{{ pessoa.id }}"></td>
+                    </tr>
+                </table>
+            </form>
+            <div class="qualificacao" id="qualificacao-{{ pessoa.id }}">
+                {{ pessoa.qualificacao }}
             </div>
-        {% endif %}
+            <button class="btn-common remove-person-button" data-person-id="{{ pessoa.id }}">Remover Pessoa</button>
+        </div>
     {% endfor %}
 </div>
 
@@ -125,8 +119,9 @@
                     <th>Condição</th>
                     <td>
                         <select name="condicao" class="form-select">
-                            <option value="Condutor Presente">Condutor Presente</option>
-                            <option value="Condutor Ausente">Condutor Ausente</option>
+                            <option value="Agente">Agente</option>
+                            <option value="Vítima">Vítima</option>
+                            <option value="Testemunha">Testemunha</option>
                         </select>
                     </td>
                     <th>Alcunha</th>
@@ -166,12 +161,12 @@
                     <th>Instrução</th>
                     <td>
                         <select name="grau_instrucao" class="form-select">
-                            <option value="Ensino Fundamental Incompleto">Ensino Fundamental Incompleto</option>
-                            <option value="Ensino Fundamental Completo">Ensino Fundamental Completo</option>
-                            <option value="Ensino Médio Incompleto">Ensino Médio Incompleto</option>
-                            <option value="Ensino Médio Completo">Ensino Médio Completo</option>
-                            <option value="Ensino Superior Incompleto">Ensino Superior Incompleto</option>
-                            <option value="Ensino Superior Completo">Ensino Superior Completo</option>
+                            <option value="Ensino fundamental incompleto">Ensino fundamental incompleto</option>
+                            <option value="Ensino fundamental">Ensino fundamental</option>
+                            <option value="Ensino médio incompleto">Ensino médio incompleto</option>
+                            <option value="Ensino médio">Ensino médio</option>
+                            <option value="Ensino superior incompleto">Ensino superior incompleto</option>
+                            <option value="Ensino superior">Ensino superior</option>
                         </select>
                     </td>
                 </tr>
@@ -179,7 +174,7 @@
                     <th>Naturalidade</th>
                     <td>
                         <input type="text" name="naturalidade" class="input-field naturalidade-input"> /
-                        <input type="text" name="naturalidade_UF" class="input-field uf-input">
+                        <input type="text" name="naturalidade_uf" class="input-field uf-input">
                     </td>
                     <th>Nacionalidade</th>
                     <td><input type="text" name="nacionalidade" class="input-field"></td>
@@ -213,263 +208,241 @@
 
 <div id="qualify-response" class="qualify-response"></div>
 
+<div id="confirmation-modal" class="modal">
+    <div class="modal-content">
+        <span class="close" id="close-confirmation">&times;</span>
+        <p>Tem certeza de que deseja remover esta pessoa?</p>
+        <button id="confirm-remove" class="btn-common">Confirmar</button>
+        <button id="cancel-remove" class="btn-common">Cancelar</button>
+    </div>
+</div>
+
 <script>
-document.getElementById('add-person').addEventListener('click', function() {
-    document.getElementById('add-person-popup').style.display = 'block';
-});
+document.addEventListener('DOMContentLoaded', function() {
+    let personToRemove = null;
 
-document.getElementById('close-popup').addEventListener('click', function() {
-    document.getElementById('add-person-popup').style.display = 'none';
-});
+    function updateQualification(personId) {
+        const form = document.querySelector(`#person-${personId} form`);
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
 
-document.getElementById('clear-fields').addEventListener('click', function() {
-    document.getElementById('add-person-form').reset();
-});
-
-document.getElementById('add-person-form').addEventListener('submit', function(event) {
-    event.preventDefault();
-    const formData = new FormData(event.target);
-    const data = Object.fromEntries(formData.entries());
-
-    if (!data.data_nascimento) {
-        data.data_nascimento = null;  // Set to null if empty
+        fetch(`/extrator/atualizar_qualificacao/${personId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': form.querySelector('[name="csrfmiddlewaretoken"]').value,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.querySelector(`#qualificacao-${personId}`).innerText = data.qualificacao;
+        })
+        .catch(error => console.error('Error:', error));
     }
 
-    fetch('{% url "add_person" %}', {  // Certifique-se de que a URL esteja correta
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value  // Adiciona o CSRF token
-        },
-        body: JSON.stringify(data),
-    })
-    .then(response => response.json())
-    .then(person => {
-        // Adicionar a nova pessoa à lista
-        const container = document.getElementById('pessoa-container');
-        const newPersonHtml = `
-        <div class="person-card" id="person-${person.id}">
-            <form method="post" action="/alterar_pessoa/${person.id}">
-                <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
-                <table class="table">
-                    <tr>
-                        <th>Condição</th>
-                        <td>
-                            <select name="condicao" class="form-select">
-                                <option value="Agente" ${person.condicao == 'Agente' ? 'selected' : ''}>Agente</option>
-                                <option value="Vítima" ${person.condicao == 'Vítima' ? 'selected' : ''}>Vítima Ausente</option>
-                                <option value="Vítima" ${person.condicao == 'Testemunha' ? 'selected' : ''}>Testemunha</option>
-                            </select>
-                        </td>
-                        <th>Alcunha</th>
-                        <td><input type="text" name="alcunha" class="input-field" value="${person.alcunha}"></td>
-                    </tr>
-                    <tr>
-                        <th>Nome</th>
-                        <td colspan="3"><input type="text" name="nome" class="input-field" value="${person.nome}"></td>
-                    </tr>
-                    <tr>
-                        <th>Pai</th>
-                        <td><input type="text" name="nome_pai" class="input-field" value="${person.nome_pai}"></td>
-                        <th>Mãe</th>
-                        <td><input type="text" name="nome_mae" class="input-field" value="${person.nome_mae}"></td>
-                    </tr>
-                    <tr>
-                        <th>Nascimento</th>
-                        <td><input type="date" name="data_nascimento" class="input-field date-input" value="${person.data_nascimento || ''}"></td>
-                        <th>Sexo</th>
-                        <td>
-                            <select name="sexo" class="form-select">
-                                <option value="Masculino" ${person.sexo == 'Masculino' ? 'selected' : ''}>Masculino</option>
-                                <option value="Feminino" ${person.sexo == 'Feminino' ? 'selected' : ''}>Feminino</option>
-                                <option value="Outro" ${person.sexo == 'Outro' ? 'selected' : ''}>Outro</option>
-                            </select>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>CPF</th>
-                        <td><input type="text" name="cpf" class="input-field" value="${person.cpf || ''}"></td>
-                        <th>Cor Pele</th>
-                        <td><input type="text" name="cor_pele" class="input-field" value="${person.cor_pele || ''}"></td>
-                    </tr>
-                    <tr>
-                        <th>Estado Civil</th>
-                        <td><input type="text" name="estado_civil" class="input-field" value="${person.estado_civil || ''}"></td>
-                        <th>Instrução</th>
-                        <td>
-                            <select name="grau_instrucao" class="form-select">
-                                <option value="Ensino Fundamental Incompleto" ${person.grau_instrucao == 'Ensino Fundamental Incompleto' ? 'selected' : ''}>Ensino Fundamental Incompleto</option>
-                                <option value="Ensino Fundamental Completo" ${person.grau_instrucao == 'Ensino Fundamental Completo' ? 'selected' : ''}>Ensino Fundamental Completo</option>
-                                <option value="Ensino Médio Incompleto" ${person.grau_instrucao == 'Ensino Médio Incompleto' ? 'selected' : ''}>Ensino Médio Incompleto</option>
-                                <option value="Ensino Médio Completo" ${person.grau_instrucao == 'Ensino Médio Completo' ? 'selected' : ''}>Ensino Médio Completo</option>
-                                <option value="Ensino Superior Incompleto" ${person.grau_instrucao == 'Ensino Superior Incompleto' ? 'selected' : ''}>Ensino Superior Incompleto</option>
-                                <option value="Ensino Superior Completo" ${person.grau_instrucao == 'Ensino Superior Completo' ? 'selected' : ''}>Ensino Superior Completo</option>
-                            </select>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>Naturalidade</th>
-                        <td>
-                            <input type="text" name="naturalidade" class="input-field naturalidade-input" value="${person.naturalidade || ''}"> /
-                            <input type="text" name="naturalidade_UF" class="input-field uf-input" value="${person.naturalidade_UF || ''}">
-                        </td>
-                        <th>Nacionalidade</th>
-                        <td><input type="text" name="nacionalidade" class="input-field" value="${person.nacionalidade || ''}"></td>
-                    </tr>
-                    <tr>
-                        <th>Tipo Doc.</th>
-                        <td><input type="text" name="documento" class="input-field" value="${person.documento || ''}"></td>
-                        <th>Nº Doc.</th>
-                        <td><input type="text" name="numero_documento" class="input-field" value="${person.numero_documento || ''}"></td>
-                    </tr>
-                    <tr>
-                        <th>Endereço</th>
-                        <td colspan="3"><input type="text" name="endereco" class="input-field" value="${person.endereco || ''}"></td>
-                    </tr>
-                    <tr>
-                        <th>End. Prof.</th>
-                        <td colspan="3"><input type="text" name="end_profissional" class="input-field" value="${person.end_profissional || ''}"></td>
-                    </tr>
-                    <tr>
-                        <th>Profissão</th>
-                        <td><input type="text" name="profissao" class="input-field" value="${person.profissao || ''}"></td>
-                        <th>Representa</th>
-                        <td><input type="checkbox" name="representa" class="checkbox-field" ${person.representa ? 'checked' : ''}></td>
-                    </tr>
-                </table>
-                <!-- <button type="submit" class="btn-common">Adicionar Pessoa</button> -->
-            </form>
-            <div class="qualificacao">
-                <p>
-                    ${person.nome}, ${person.nacionalidade.toLowerCase()}, ${person.estado_civil.toLowerCase()}, profissão ${person.profissao.toLowerCase() || 'não esclarecida'}, ${person.grau_instrucao.toLowerCase()}, portador do R.G. nº ${person.numero_documento}, inscrito no C.P.F. sob nº ${person.cpf}, filho de ${person.nome_pai} e de ${person.nome_mae}, natural de ${person.naturalidade || 'local não apurado'}, nascido em ${new Date(person.data_nascimento).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}, contando ${new Date().getFullYear() - new Date(person.data_nascimento).getFullYear()} anos na época do fato, de pele ${person.cor_pele.toLowerCase()}, com endereço na ${person.endereco}, celular ${person.celular || 'não informado'}, CEP ${person.cep || 'não informado'}.
-                </p>
-                <button class="btn-common" onclick="copyToClipboard('${person.id}')">Copiar Qualificação</button>
-                <button class="btn-common" onclick="removePerson('${person.id}')">Remover Pessoa</button>
-            </div>
-        </div>`;
-        container.insertAdjacentHTML('beforeend', newPersonHtml);
-        document.getElementById('add-person-popup').style.display = 'none';
-        document.getElementById('add-person-form').reset();  // Redefinir o formulário
-    })
-    .catch((error) => {
-        console.error('Erro:', error);
+    document.querySelectorAll('.person-card input, .person-card select').forEach(function(element) {
+        element.addEventListener('change', function(event) {
+            const personId = event.target.getAttribute('data-person-id');
+            const form = document.querySelector(`#person-${personId} form`);
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            fetch(`/extrator/alterar-pessoa/${personId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': form.querySelector('[name="csrfmiddlewaretoken"]').value,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.querySelector(`#qualificacao-${personId}`).innerText = data.qualificacao;
+            })
+            .catch(error => console.error('Error:', error));
+        });
     });
-});
 
-// Código reservado para qualificar todos
-document.getElementById('qualify-all').addEventListener('click', function() {
-    fetch('{% url "qualificar_todos" %}', {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-        },
-    })
-    .then(response => response.json())
-    .then(data => {
-        document.getElementById('qualify-response').innerText = data.response;
-        document.getElementById('qualify-response').style.display = 'block';
-    })
-    .catch(error => console.error('Erro:', error));
-});
+    document.querySelectorAll('.remove-person-button').forEach(function(button) {
+        button.addEventListener('click', function() {
+            personToRemove = button.getAttribute('data-person-id');
+            document.getElementById('confirmation-modal').style.display = 'block';
+        });
+    });
 
-function removePerson(id) {
-    if (confirm('Tem certeza que deseja remover esta pessoa?')) {
-        fetch(`/extrator/remove-person/${id}/`, {
+    document.getElementById('confirm-remove').addEventListener('click', function() {
+        fetch(`/extrator/remove-person/${personToRemove}/`, {
             method: 'DELETE',
             headers: {
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                'X-CSRFToken': document.querySelector('[name="csrfmiddlewaretoken"]').value
             }
         })
         .then(response => {
             if (response.ok) {
-                document.getElementById(`person-${id}`).remove();
+                document.getElementById(`person-${personToRemove}`).remove();
+                document.getElementById('confirmation-modal').style.display = 'none';
             } else {
-                response.json().then(data => {
-                    alert(data.message || 'Erro ao remover pessoa.');
-                });
+                alert('Erro ao remover pessoa.');
             }
         })
-        .catch(error => {
-            console.error('Erro:', error);
-        });
-    }
-}
-
-document.getElementById('add-person-form').addEventListener('submit', function(event) {
-    event.preventDefault();
-    const formData = new FormData(event.target);
-    const data = Object.fromEntries(formData.entries());
-
-    if (!data.data_nascimento) {
-        data.data_nascimento = null;  // Set to null if empty
-    }
-
-    fetch('{% url "add_person" %}', {  
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value  // Adiciona o CSRF token
-        },
-        body: JSON.stringify(data),
-    })
-    .then(response => response.json())
-    .then(person => {
-        // Adicionar a nova pessoa à lista
-        const container = document.getElementById('pessoa-container');
-        const newPersonHtml = `
-        <div class="person-card" id="person-${person.id}">
-            <form method="post" action="/alterar_pessoa/${person.id}">
-                <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
-                <table class="table">
-                    <!-- Form fields... -->
-                </table>
-            </form>
-            <div class="qualificacao">
-                <p>
-                    <!-- Qualification content... -->
-                </p>
-                <button class="btn-common" onclick="copyToClipboard('${person.id}')">Copiar Qualificação</button>
-                <button class="btn-common" onclick="removePerson('${person.id}')">Remover Pessoa</button>
-            </div>
-        </div>`;
-        container.insertAdjacentHTML('beforeend', newPersonHtml);
-        document.getElementById('add-person-popup').style.display = 'none';
-        document.getElementById('add-person-form').reset();  // Redefinir o formulário
-    })
-    .catch((error) => {
-        console.error('Erro:', error);
+        .catch(error => console.error('Error:', error));
     });
-});
 
-document.querySelectorAll('.person-form').forEach(form => {
-    form.addEventListener('submit', function(event) {
+    document.getElementById('cancel-remove').addEventListener('click', function() {
+        document.getElementById('confirmation-modal').style.display = 'none';
+        personToRemove = null;
+    });
+
+    document.getElementById('close-confirmation').addEventListener('click', function() {
+        document.getElementById('confirmation-modal').style.display = 'none';
+        personToRemove = null;
+    });
+
+    document.getElementById('add-person').addEventListener('click', function() {
+        document.getElementById('add-person-popup').style.display = 'block';
+    });
+
+    document.getElementById('close-popup').addEventListener('click', function() {
+        document.getElementById('add-person-popup').style.display = 'none';
+    });
+
+    document.getElementById('clear-fields').addEventListener('click', function() {
+        document.getElementById('add-person-form').reset();
+    });
+
+    document.getElementById('add-person-form').addEventListener('submit', function(event) {
         event.preventDefault();
         const formData = new FormData(event.target);
         const data = Object.fromEntries(formData.entries());
 
-        fetch(form.action, {  
+        fetch('{% url "add_person" %}', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                'X-CSRFToken': document.querySelector('[name="csrfmiddlewaretoken"]').value,
+                'Content-Type': 'application/json'
             },
-            body: new URLSearchParams(data).toString(),
+            body: JSON.stringify(data)
         })
-        .then(() => {
-            // Atualizar qualificação após salvar as alterações
-            fetch(`/extrator/qualificar_pessoa/${data.id}/`, {
-                method: 'GET',
-                headers: {
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById(`qualificacao-${data.id}`).innerText = data.qualificacao;
-            })
-            .catch(error => console.error('Erro ao qualificar pessoa:', error));
+        .then(response => response.json())
+        .then(person => {
+            // Adicionar a nova pessoa ao DOM
+            const container = document.getElementById('pessoa-container');
+            const newPersonHtml = `
+            <div class="person-card" id="person-${person.id}">
+                <form method="post" action="/extrator/alterar-pessoa/${person.id}/">
+                    {% csrf_token %}
+                    <input type="hidden" name="id" value="${person.id}">
+                    <table class="table">
+                        <tr>
+                            <th>Condição</th>
+                            <td>
+                                <select name="condicao" class="form-select" data-person-id="${person.id}">
+                                    <option value="Agente" ${person.condicao == 'Agente' ? 'selected' : ''}>Agente</option>
+                                    <option value="Vítima" ${person.condicao == 'Vítima' ? 'selected' : ''}>Vítima</option>
+                                    <option value="Testemunha" ${person.condicao == 'Testemunha' ? 'selected' : ''}>Testemunha</option>
+                                </select>
+                            </td>
+                            <th>Alcunha</th>
+                            <td><input type="text" name="alcunha" class="input-field" value="${person.alcunha}" data-person-id="${person.id}"></td>
+                        </tr>
+                        <tr>
+                            <th>Nome</th>
+                            <td colspan="3"><input type="text" name="nome" class="input-field" value="${person.nome}" data-person-id="${person.id}"></td>
+                        </tr>
+                        <tr>
+                            <th>Pai</th>
+                            <td><input type="text" name="nome_pai" class="input-field" value="${person.nome_pai}" data-person-id="${person.id}"></td>
+                            <th>Mãe</th>
+                            <td><input type="text" name="nome_mae" class="input-field" value="${person.nome_mae}" data-person-id="${person.id}"></td>
+                        </tr>
+                        <tr>
+                            <th>Nascimento</th>
+                            <td><input type="date" name="data_nascimento" class="input-field date-input" value="${person.data_nascimento || ''}" data-person-id="${person.id}"></td>
+                            <th>Sexo</th>
+                            <td>
+                                <select name="sexo" class="form-select" data-person-id="${person.id}">
+                                    <option value="Masculino" ${person.sexo == 'Masculino' ? 'selected' : ''}>Masculino</option>
+                                    <option value="Feminino" ${person.sexo == 'Feminino' ? 'selected' : ''}>Feminino</option>
+                                    <option value="Outro" ${person.sexo == 'Outro' ? 'selected' : ''}>Outro</option>
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>CPF</th>
+                            <td><input type="text" name="cpf" class="input-field" value="${person.cpf || ''}" data-person-id="${person.id}"></td>
+                            <th>Cor Pele</th>
+                            <td><input type="text" name="cor_pele" class="input-field" value="${person.cor_pele || ''}" data-person-id="${person.id}"></td>
+                        </tr>
+                        <tr>
+                            <th>Estado Civil</th>
+                            <td><input type="text" name="estado_civil" class="input-field" value="${person.estado_civil || ''}" data-person-id="${person.id}"></td>
+                            <th>Instrução</th>
+                            <td>
+                                <select name="grau_instrucao" class="form-select" data-person-id="${person.id}">
+                                    <option value="Ensino fundamental incompleto" ${person.grau_instrucao == 'Ensino fundamental incompleto' ? 'selected' : ''}>Ensino fundamental incompleto</option>
+                                    <option value="Ensino fundamental" ${person.grau_instrucao == 'Ensino fundamental' ? 'selected' : ''}>Ensino fundamental</option>
+                                    <option value="Ensino médio incompleto" ${person.grau_instrucao == 'Ensino médio incompleto' ? 'selected' : ''}>Ensino médio incompleto</option>
+                                    <option value="Ensino médio" ${person.grau_instrucao == 'Ensino médio' ? 'selected' : ''}>Ensino médio</option>
+                                    <option value="Ensino superior incompleto" ${person.grau_instrucao == 'Ensino superior incompleto' ? 'selected' : ''}>Ensino superior incompleto</option>
+                                    <option value="Ensino superior" ${person.grau_instrucao == 'Ensino superior' ? 'selected' : ''}>Ensino superior</option>
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Naturalidade</th>
+                            <td>
+                                <input type="text" name="naturalidade" class="input-field naturalidade-input" value="${person.naturalidade || ''}" data-person-id="${person.id}"> /
+                                <input type="text" name="naturalidade_UF" class="input-field uf-input" value="${person.naturalidade_UF || ''}" data-person-id="${person.id}">
+                            </td>
+                            <th>Nacionalidade</th>
+                            <td><input type="text" name="nacionalidade" class="input-field" value="${person.nacionalidade || ''}" data-person-id="${person.id}"></td>
+                        </tr>
+                        <tr>
+                            <th>Tipo Doc.</th>
+                            <td><input type="text" name="documento" class="input-field" value="${person.documento || ''}" data-person-id="${person.id}"></td>
+                            <th>Nº Doc.</th>
+                            <td><input type="text" name="numero_documento" class="input-field" value="${person.numero_documento || ''}" data-person-id="${person.id}"></td>
+                        </tr>
+                        <tr>
+                            <th>Endereço</th>
+                            <td colspan="3"><input type="text" name="endereco" class="input-field" value="${person.endereco || ''}" data-person-id="${person.id}"></td>
+                        </tr>
+                        <tr>
+                            <th>End. Prof.</th>
+                            <td colspan="3"><input type="text" name="end_profissional" class="input-field" value="${person.end_profissional || ''}" data-person-id="${person.id}"></td>
+                        </tr>
+                        <tr>
+                            <th>Profissão</th>
+                            <td><input type="text" name="profissao" class="input-field" value="${person.profissao || ''}" data-person-id="${person.id}"></td>
+                            <th>Representa</th>
+                            <td><input type="checkbox" name="representa" class="checkbox-field" ${person.representa ? 'checked' : ''} data-person-id="${person.id}"></td>
+                        </tr>
+                    </table>
+                </form>
+                <div class="qualificacao" id="qualificacao-${person.id}">
+                    ${person.qualificacao}
+                </div>
+                <button class="btn-common remove-person-button" data-person-id="${person.id}">Remover Pessoa</button>
+            </div>`;
+            container.insertAdjacentHTML('beforeend', newPersonHtml);
+
+            document.querySelector(`#person-${person.id} .remove-person-button`).addEventListener('click', function() {
+                personToRemove = person.id;
+                document.getElementById('confirmation-modal').style.display = 'block';
+            });
+
+            document.querySelectorAll(`#person-${person.id} input, #person-${person.id} select`).forEach(function(element) {
+                element.addEventListener('change', function(event) {
+                    const personId = event.target.getAttribute('data-person-id');
+                    updateQualification(personId);
+                });
+            });
+
+            document.getElementById('add-person-popup').style.display = 'none';
+            document.getElementById('add-person-form').reset();
         })
-        .catch(error => console.error('Erro ao salvar alterações:', error));
+        .catch(error => console.error('Error:', error));
     });
 });
 </script>

@@ -5,7 +5,7 @@
 <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
     <label for="file-upload" class="action-button btn-common">Escolher arquivo</label>
-    <input id="file-upload" type="file" name="file" style="display: none;" required>
+    <input id="file-upload" type="file" name="file" required>
     <span id="file-chosen">Nenhum arquivo escolhido</span>
     <button type="submit" class="action-button btn-common">Upload</button>
 </form>
