@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponseNotAllowed
 from django.views.decorators.csrf import csrf_exempt
+from django.urls import reverse  
 from .models import Pessoa
 from .forms import UploadFileForm
 from PyPDF2 import PdfReader
@@ -11,108 +12,23 @@ import random
 import logging
 import requests
 
-def extract_address_info(text):
-    # Ler a chave da API do Google Maps do arquivo configs.json
-    with open('/configs.json') as config_file:
-        config = json.load(config_file)
-        api_key = config.get('Google_Maps_API_KEI')
-    
-    if not api_key:
-        raise ValueError("API Key not found in /configs.json")
-    
-    # Extrair telefone fixo
-    phone = re.search(r'Fone\s*\((\d{2})\)\s*(\d{4,5}-\d{4})', text)
-    phone = f"({phone.group(1)}) {phone.group(2)}" if phone else None
-
-    # Extrair celular
-    mobile = re.search(r'Celular\s*\((\d{2})\)\s*(\d{5}-\d{4})', text)
-    mobile = f"({mobile.group(1)}) {mobile.group(2)}" if mobile else None
-
-    # Extrair e-mail (se houver)
-    email = re.search(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', text)
-    email = email.group(0) if email else None
-
-    # Remover telefone, celular e e-mail do texto
-    clean_text = re.sub(r'Fone\s*\(\d{2}\)\s*\d{4,5}-\d{4}', '', text)
-    clean_text = re.sub(r'Celular\s*\(\d{2}\)\s*\d{5}-\d{4}', '', clean_text)
-    clean_text = re.sub(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', '', clean_text).strip()
-
-    # Extrair CEP (se houver)
-    cep = re.search(r'\d{5}-?\d{3}', clean_text)
-    cep = cep.group(0) if cep else None
-
-    # Extrair cidade e estado
-    city_state = re.search(r'([^,]+)\s*-\s*([A-Z]{2})(?:,|\s*$)', clean_text)
-    city = city_state.group(1).strip() if city_state else None
-    state = city_state.group(2) if city_state else None
-
-    # Remover cidade, estado e CEP do texto
-    clean_text = re.sub(r'([^,]+)\s*-\s*[A-Z]{2}(?:,|\s*$)', '', clean_text).strip()
-    clean_text = re.sub(r'\d{5}-?\d{3}', '', clean_text).strip()
-
-    # Extrair número, complemento e bairro
-    match = re.search(r',\s*(\d+)\s*([^,-]*)(?:-\s*([^,]+))?', clean_text)
-    if match:
-        number = match.group(1)
-        complement = match.group(2).strip() if match.group(2) else None
-        neighborhood = match.group(3).strip() if match.group(3) else None
-        street = re.sub(r',\s*\d+.*$', '', clean_text).strip()
-    else:
-        number = None
-        complement = None
-        neighborhood = None
-        street = clean_text
-
-    # Formar o endereço completo para a consulta
-    address_query = f"{street}, {number}, {city}, {state}, {cep}"
-    response = requests.get(f"https://maps.googleapis.com/maps/api/geocode/json?address={address_query}&key={api_key}")
-
-    if response.status_code != 200:
-        raise ValueError("Error contacting Google Maps API")
-
-    address_data = response.json()
-    
-    if not address_data['results']:
-        raise ValueError("No results found for the address")
-
-    address_components = address_data['results'][0]['address_components']
-    
-    address_info = {
-        'street': street,
-        'number': number,
-        'complement': complement,
-        'neighborhood': neighborhood,
-        'city': city,
-        'state': state,
-        'cep': cep,
-        'phone': phone,
-        'mobile': mobile,
-        'email': email
-    }
-
-    # Preencher os campos do endereço com os dados retornados pela API
-    for component in address_components:
-        if 'route' in component['types']:
-            address_info['street'] = component['long_name']
-        if 'street_number' in component['types']:
-            address_info['number'] = component['long_name']
-        if 'sublocality' in component['types']:
-            address_info['neighborhood'] = component['long_name']
-        if 'administrative_area_level_2' in component['types']:
-            address_info['city'] = component['long_name']
-        if 'administrative_area_level_1' in component['types']:
-            address_info['state'] = component['short_name']
-        if 'postal_code' in component['types']:
-            address_info['cep'] = component['long_name']
-    
-    return address_info
-
 logger = logging.getLogger(__name__)
 
 # Carregar a chave API do arquivo settings.json
 with open('./configs.json') as f:
     settings = json.load(f)
+
     openai_api_key = settings.get('OpenAI_API_KEY')
+    if not openai_api_key:
+        raise ValueError("API Key not found in /configs.json")
+
+    google_maps_api_key = settings.get('Google_Maps_API_KEI')
+    if not google_maps_api_key:
+        raise ValueError("API Key not found in /configs.json")
+    
+    regex_pessoas = settings.get('regex_pessoas')
+    if not regex_pessoas:
+        raise ValueError("Regex not found in /configs.json")
 
 # Substituições para as condições
 CONDICOES_SUBSTITUICOES = {
@@ -179,7 +95,6 @@ def obter_qualificacao(pessoa):
     aleatorio_feminino3 = "não esclarecida"
     aleatorio_feminino = [aleatorio_feminino1, aleatorio_feminino2, aleatorio_feminino3]
     
-    
     nacionalidade = str(pessoa.get('nacionalidade')).strip().lower() or f'nacionalidade {random.choice(aleatorio_feminino)}'.strip()
     estado_civil = str(pessoa.get('estado_civil')).strip().lower() or random.choice(aleatorio_masculino)
     profissao = str(pessoa.get('profissao')).strip().lower() or f'''profissão {random.choice(aleatorio_feminino)}'''.strip()
@@ -219,24 +134,22 @@ def upload_file_view(request):
             arquivo = request.FILES['file']
             texto = extrair_texto_pdf(arquivo)
 
-            regex = r"Participante:\s+(?P<no_participante>\d+)\s+-\s+(?P<condicao>\w*\s?\w*)\s*(?P<presente>\w+)?\nEndere.o:\s+(?P<endereco>.*\n?.*\n)Endere.o\s\w+:(?P<end_profissional>.*)([\w*\s]*\?\s?(?P<requer_protetiva>Sim|Não))?Estado\sCivil:\s+(?P<estado_civil>.*).*\sGrau\sde\s.nstru..o:\s(?P<grau_instrucao>[\s\S\n]{,30})?Cor.\w+:\s(?P<cor_pele>.*)\nNaturalidade:\s((?P<naturalidade>.*)[\n|\s](?P<naturalidade_uf>[A-Z]{2}))?\s?Nacionalidade:\s(?P<nacionalidade>.*)\sCor .lhos:\s(?P<cor_olhos>[A-Z][a-z|\s]*)(?P<nome>[[A-Z|\s]*)\sNome:\s(?P<nome_pai>[\w|\s|-]*)\s\/\s(?P<nome_mae>[\w|\s|-]*)\sPai.*\n\w*\s\w+:\s(?P<data_nascimento>\d{2}/\d{2}/\d{4})\sSexo:\s(?P<sexo>\w*\s?\w*)\sCPF:\s?(?P<cpf>(\d{3}\.\d{3}\.\d{3}.\d{2})?)\nDocumento:\s(?P<documento>.*)\sNúmero:\s?(?P<numero_documento>\d*)\nProfi\w+:\s(?P<profissao>.*)?Cargo:\s(?P<cargo>.*)?Cond\w*\s\w*:\s(?P<condicao_fisica>.*)?"
-            
-            matches = re.finditer(regex, texto, re.MULTILINE)
+            matches = re.finditer(regex_pessoas, texto, re.MULTILINE)
             participantes = []
             for matchNum, match in enumerate(matches, start=1):
                 participante = match.groupdict()
-                print(participante['condicao'])
-                participante['condicao'] = atualizar_condicao(participante['condicao'])
-                print(participante['condicao'])
                 participante['id'] = matchNum
-                participante['qualificacao'] = obter_qualificacao(participante)
                 participantes.append(participante)
 
             request.session['pessoas'] = participantes
-            return redirect('upload_success')
+            return JsonResponse({'success': True, 'redirect_url': reverse('upload_success')})
+        else:
+            return JsonResponse({'success': False, 'error': 'Formulário inválido'})
     else:
         form = UploadFileForm()
-    return render(request, 'extrator/upload.html', {'form': form})
+        return render(request, 'extrator/upload.html', {'form': form})
+
+    return JsonResponse({'error': 'Método não permitido'}, status=405)
 
 @csrf_exempt
 def alterar_pessoa(request, pessoa_id):
@@ -251,7 +164,9 @@ def alterar_pessoa(request, pessoa_id):
         pessoas = json.loads(pessoas_str) if isinstance(pessoas_str, str) else pessoas_str
 
         pessoa_atualizada = None
+        
         for pessoa in pessoas:
+            logger.debug(f"for pessoa in pessoas")
             logger.debug(f"Verificando pessoa com ID: {pessoa['id']} contra {pessoa_id}")
             if str(pessoa['id']) == str(pessoa_id):
                 pessoa.update(data)
@@ -268,6 +183,7 @@ def alterar_pessoa(request, pessoa_id):
             logger.error(f"Pessoa com ID {pessoa_id} não encontrada.")
             return JsonResponse({'error': 'Pessoa não encontrada'}, status=404)
     return HttpResponseNotAllowed(['POST'])
+
 
 @csrf_exempt
 def add_person(request):
@@ -306,113 +222,159 @@ def upload_success_view(request):
 
 @csrf_exempt
 def atualizar_qualificacao(request, pessoa_id):
+    logger.debug(f"Recebido pedido para atualizar qualificação para pessoa_id: {pessoa_id}")
+    
     if request.method == 'POST':
-        data = json.loads(request.body)
+        try:
+            data = json.loads(request.body)
+            logger.debug(f"Dados recebidos: {data}")
 
-        # Atualizar JSON na sessão
-        pessoas = request.session.get('pessoas', [])
-        for pessoa in pessoas:
-            if pessoa['id'] == pessoa_id:
-                pessoa.update(data)
-                pessoa['qualificacao'] = obter_qualificacao(pessoa)
-                break
-        request.session['pessoas'] = pessoas
+            # Atualizar JSON na sessão
+            pessoas_str = request.session.get('pessoas', '[]')
+            pessoas = json.loads(pessoas_str) if isinstance(pessoas_str, str) else pessoas_str
+            logger.debug(f"Pessoas na sessão: {pessoas}")
 
-        return JsonResponse({'qualificacao': pessoa['qualificacao']})
+            pessoa_atualizada = None
+            for pessoa in pessoas:
+                logger.debug(f"Verificando pessoa: {pessoa}")
+                if str(pessoa['id']) == str(pessoa_id):
+                    pessoa['qualificacao'] = obter_qualificacao(pessoa)
+                    pessoa_atualizada = pessoa
+                    break
+
+            if pessoa_atualizada:
+                request.session['pessoas'] = json.dumps(pessoas)
+                logger.debug(f"Pessoa encontrada e qualificação atualizada: {pessoa_atualizada}")
+                return JsonResponse({'qualificacao': pessoa_atualizada['qualificacao']}, status=200)
+            else:
+                logger.warning(f"Pessoa com id {pessoa_id} não encontrada")
+                return JsonResponse({'error': 'Pessoa não encontrada'}, status=404)
+        except Exception as e:
+            logger.error(f"Erro ao processar a solicitação: {e}")
+            return JsonResponse({'error': 'Erro ao processar a solicitação'}, status=500)
     return HttpResponseNotAllowed(['POST'])
 
-def extract_address_info(text):
-    # Ler a chave da API do Google Maps do arquivo configs.json
-    with open('/configs.json') as config_file:
-        config = json.load(config_file)
-        api_key = config.get('Google_Maps_API_KEI')
-    
-    if not api_key:
-        raise ValueError("API Key not found in /configs.json")
-    
-    # Extrair telefone fixo
-    phone = re.search(r'Fone\s*\((\d{2})\)\s*(\d{4,5}-\d{4})', text)
-    phone = f"({phone.group(1)}) {phone.group(2)}" if phone else None
 
-    # Extrair celular
-    mobile = re.search(r'Celular\s*\((\d{2})\)\s*(\d{5}-\d{4})', text)
-    mobile = f"({mobile.group(1)}) {mobile.group(2)}" if mobile else None
+def extract_address_info(request):
+    if request.method == 'POST':
+        try:
+            body = json.loads(request.body)
+            text = body.get('text', '')
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Dados JSON inválidos'}, status=400)
+        
+        # Verificando se o texto foi fornecido
+        if not text:
+            return JsonResponse({'error': 'Texto não fornecido'}, status=400)
 
-    # Extrair e-mail (se houver)
-    email = re.search(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', text)
-    email = email.group(0) if email else None
+        # Extrair telefone fixo
+        phone = re.search(r'(tel)?.one\s*\(?(\d{,2})\)?\s*(\d{4,5}-?\d{4})', text)
+        phone = f"({phone.group(1)}) {phone.group(2)}" if phone else None
 
-    # Remover telefone, celular e e-mail do texto
-    clean_text = re.sub(r'Fone\s*\(\d{2}\)\s*\d{4,5}-\d{4}', '', text)
-    clean_text = re.sub(r'Celular\s*\(\d{2}\)\s*\d{5}-\d{4}', '', clean_text)
-    clean_text = re.sub(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', '', clean_text).strip()
+        # Extrair celular
+        mobile = re.search(r'.elular\s*\(?(\d{,2})\)?\s*(9\d{4}-?\d{4})', text)
+        mobile = f"({mobile.group(1)}) {mobile.group(2)}" if mobile else None
 
-    # Extrair CEP (se houver)
-    cep = re.search(r'\d{5}-?\d{3}', clean_text)
-    cep = cep.group(0) if cep else None
+        # Extrair e-mail (se houver)
+        email = re.search(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', text)
+        email = email.group(0) if email else None
 
-    # Extrair cidade e estado
-    city_state = re.search(r'([^,]+)\s*-\s*([A-Z]{2})(?:,|\s*$)', clean_text)
-    city = city_state.group(1).strip() if city_state else None
-    state = city_state.group(2) if city_state else None
+        # Remover telefone, celular e e-mail do texto
+        clean_text = re.sub(r'(tel)?.one\s*\(?\d{,2}\)?\s*\d{4}-?\d{4}', '', text)
+        clean_text = re.sub(r'.elular\s*\(?\d{,2}\)?\s*\d{5}-?\d{4}', '', clean_text)
+        clean_text = re.sub(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', '', clean_text).strip()
 
-    # Remover cidade, estado e CEP do texto
-    clean_text = re.sub(r'([^,]+)\s*-\s*[A-Z]{2}(?:,|\s*$)', '', clean_text).strip()
-    clean_text = re.sub(r'\d{5}-?\d{3}', '', clean_text).strip()
+        # Extrair CEP (se houver)
+        cep = re.search(r'\d{5}-?\d{3}', clean_text)
+        cep = cep.group(0) if cep else None
 
-    # Extrair número, complemento e bairro
-    match = re.search(r',\s*(\d+)\s*([^,-]*)(?:-\s*([^,]+))?', clean_text)
-    if match:
-        number = match.group(1)
-        complement = match.group(2).strip() if match.group(2) else None
-        neighborhood = match.group(3).strip() if match.group(3) else None
-        street = re.sub(r',\s*\d+.*$', '', clean_text).strip()
+        # Extrair cidade e estado
+        city_state = re.search(r'([^,]+)\s*-\s*([A-Z]{2})(?:,|\s*$)', clean_text)
+        city = city_state.group(1).strip() if city_state else None
+        state = city_state.group(2) if city_state else None
+
+        # Remover cidade, estado e CEP do texto
+        clean_text = re.sub(r'([^,]+)\s*-\s*[A-Z]{2}(?:,|\s*$)', '', clean_text).strip()
+        clean_text = re.sub(r'\d{5}-?\d{3}', '', clean_text).strip()
+
+        # Extrair número, complemento e bairro
+        match = re.search(r',\s*(\d+)\s*([^,-]*)(?:-\s*([^,]+))?', clean_text)
+        if match:
+            number = match.group(1)
+            complement = match.group(2).strip() if match.group(2) else None
+            neighborhood = match.group(3).strip() if match.group(3) else None
+            street = re.sub(r',\s*\d+.*$', '', clean_text).strip()
+        else:
+            number = None
+            complement = None
+            neighborhood = None
+            street = clean_text
+
+        # Formar o endereço completo para a consulta
+        address_query = f"{street}, {number}, {city}, {state}, {cep}"
+        response = requests.get(f"https://maps.googleapis.com/maps/api/geocode/json?address={address_query}&key={google_maps_api_key}")
+
+        if response.status_code != 200:
+            raise ValueError("Error contacting Google Maps API")
+
+        address_data = response.json()
+        
+        if not address_data['results']:
+            raise ValueError("No results found for the address")
+
+        address_components = address_data['results'][0]['address_components']
+        
+        address_info = {
+            'street': street,
+            'number': number,
+            'complement': complement,
+            'neighborhood': neighborhood,
+            'city': city,
+            'state': state,
+            'cep': cep,
+            'phone': phone,
+            'mobile': mobile,
+            'email': email
+        }
+
+        # Preencher os campos do endereço com os dados retornados pela API
+        for component in address_components:
+            if 'route' in component['types']:
+                address_info['street'] = component['long_name']
+            if 'street_number' in component['types']:
+                address_info['number'] = component['long_name']
+            if 'sublocality' in component['types']:
+                address_info['neighborhood'] = component['long_name']
+            if 'administrative_area_level_2' in component['types']:
+                address_info['city'] = component['long_name']
+            if 'administrative_area_level_1' in component['types']:
+                address_info['state'] = component['short_name']
+            if 'postal_code' in component['types']:
+                address_info['cep'] = component['long_name']
+        
+            # Formatar o endereço completo de forma amigável
+        friendly_address = f"{address_info['street']}"
+        if address_info['number']:
+            friendly_address += f" nº {address_info['number']}"
+
+        if address_info['complement']:
+            friendly_address += f" {address_info['complement']}"
+        friendly_address += f", bairro {address_info['neighborhood']}, {address_info['city']}/{address_info['state']}, C.E.P. {address_info['cep']}"
+        
+        contact_info = []
+        if address_info['phone']:
+            contact_info.append(f"telefone {address_info['phone']}")
+        if address_info['mobile']:
+            contact_info.append(f"celular {address_info['mobile']}")
+        if address_info['email']:
+            contact_info.append(f"e-mail {address_info['email']}")
+        
+        if contact_info:
+            contact_info_text =", " + ", ".join(contact_info)
+            friendly_address += contact_info_text.strip() + '.'
+        else:
+            friendly_address +="."
+
+        return JsonResponse({'endereco': friendly_address})
     else:
-        number = None
-        complement = None
-        neighborhood = None
-        street = clean_text
-
-    # Formar o endereço completo para a consulta
-    address_query = f"{street}, {number}, {city}, {state}, {cep}"
-    response = requests.get(f"https://maps.googleapis.com/maps/api/geocode/json?address={address_query}&key={api_key}")
-
-    if response.status_code != 200:
-        raise ValueError("Error contacting Google Maps API")
-
-    address_data = response.json()
-    
-    if not address_data['results']:
-        raise ValueError("No results found for the address")
-
-    address_components = address_data['results'][0]['address_components']
-    
-    address_info = {
-        'street': street,
-        'number': number,
-        'complement': complement,
-        'neighborhood': neighborhood,
-        'city': city,
-        'state': state,
-        'cep': cep,
-        'phone': phone,
-        'mobile': mobile,
-        'email': email
-    }
-
-    # Preencher os campos do endereço com os dados retornados pela API
-    for component in address_components:
-        if 'route' in component['types']:
-            address_info['street'] = component['long_name']
-        if 'street_number' in component['types']:
-            address_info['number'] = component['long_name']
-        if 'sublocality' in component['types']:
-            address_info['neighborhood'] = component['long_name']
-        if 'administrative_area_level_2' in component['types']:
-            address_info['city'] = component['long_name']
-        if 'administrative_area_level_1' in component['types']:
-            address_info['state'] = component['short_name']
-        if 'postal_code' in component['types']:
-            address_info['cep'] = component['long_name']
-    
-    return address_info
+        return JsonResponse({'error': 'Método não permitido'}, status=405)

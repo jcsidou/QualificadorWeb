@@ -103,6 +103,7 @@
                 {{ pessoa.qualificacao }}
             </div>
             <button class="btn-common remove-person-button" data-person-id="{{ pessoa.id }}">Remover Pessoa</button>
+            <button class="btn-common search-cep-button" data-person-id="{{ pessoa.id }}">Pesquisar CEP</button>
         </div>
     {% endfor %}
 </div>
@@ -218,232 +219,300 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    let personToRemove = null;
-
-    function updateQualification(personId) {
-        const form = document.querySelector(`#person-${personId} form`);
-        const formData = new FormData(form);
-        const data = Object.fromEntries(formData.entries());
-
-        fetch(`/extrator/atualizar_qualificacao/${personId}/`, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': form.querySelector('[name="csrfmiddlewaretoken"]').value,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        })
-        .then(response => response.json())
-        .then(data => {
-            document.querySelector(`#qualificacao-${personId}`).innerText = data.qualificacao;
-        })
-        .catch(error => console.error('Error:', error));
-    }
-
-    document.querySelectorAll('.person-card input, .person-card select').forEach(function(element) {
-        element.addEventListener('change', function(event) {
-            const personId = event.target.getAttribute('data-person-id');
-            const form = document.querySelector(`#person-${personId} form`);
-            const formData = new FormData(form);
-            const data = Object.fromEntries(formData.entries());
-
-            fetch(`/extrator/alterar-pessoa/${personId}/`, {
+    document.addEventListener('DOMContentLoaded', function() {
+        let personToRemove = null;
+    
+        function updateSession(personId, data) {
+            return fetch(`/extrator/alterar-pessoa/${personId}/`, {
                 method: 'POST',
                 headers: {
-                    'X-CSRFToken': form.querySelector('[name="csrfmiddlewaretoken"]').value,
+                    'X-CSRFToken': document.querySelector(`[name="csrfmiddlewaretoken"]`).value,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(errData => {
+                        throw new Error(errData.error || 'Erro desconhecido');
+                    });
+                }
+                return response.json();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                console.log(`Erro ao atualizar dados da sessão: ${error.message}`);
+            });
+        }
+    
+        function updateQualification(personId) {
+            console.log(`Atualizando qualificação para pessoa_id: ${personId}`);
+            fetch(`/extrator/atualizar_qualificacao/${personId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector(`[name="csrfmiddlewaretoken"]`).value,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({qualificacao: ''})  // Enviando uma payload vazia para forçar a atualização
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(errData => {
+                        throw new Error(errData.error || 'Erro desconhecido');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                document.querySelector(`#qualificacao-${personId}`).innerText = data.qualificacao;
+                console.log('Qualificação atualizada com sucesso!');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                console.log(`Erro ao atualizar qualificação: ${error.message}`);
+            });
+        }
+    
+        function pesquisarCEP(personId) {
+            const form = document.querySelector(`#person-${personId} form`);
+            const enderecoField = form.querySelector('input[name="endereco"]');
+            const endereco = enderecoField.value;
+        
+            fetch('/extrator/extract_address_info/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector(`[name="csrfmiddlewaretoken"]`).value,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ text: endereco })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    enderecoField.value = data.endereco;
+                    const updatedData = {
+                        endereco: data.endereco,
+                        numero_documento: form.querySelector('input[name="numero_documento"]').value,
+                        cpf: form.querySelector('input[name="cpf"]').value,
+                        nome: form.querySelector('input[name="nome"]').value,
+                        // Adicione aqui todos os outros campos necessários para atualizar a sessão
+                    };
+                    return updateSession(personId, updatedData).then(() => {
+                        updateQualification(personId);
+                    });
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+    
+        document.querySelectorAll('.person-card input, .person-card select').forEach(function(element) {
+            element.addEventListener('change', function(event) {
+                const personId = event.target.getAttribute('data-person-id');
+                const form = document.querySelector(`#person-${personId} form`);
+                const formData = new FormData(form);
+                const data = Object.fromEntries(formData.entries());
+    
+                updateSession(personId, data).then(() => updateQualification(personId));
+            });
+        });
+    
+        document.querySelectorAll('.remove-person-button').forEach(function(button) {
+            button.addEventListener('click', function() {
+                personToRemove = button.getAttribute('data-person-id');
+                document.getElementById('confirmation-modal').style.display = 'block';
+            });
+        });
+    
+        document.querySelectorAll('.search-cep-button').forEach(function(button) {
+            button.addEventListener('click', function() {
+                const personId = button.getAttribute('data-person-id');
+                pesquisarCEP(personId);
+            });
+        });
+
+        document.getElementById('confirm-remove').addEventListener('click', function() {
+            fetch(`/extrator/remove-person/${personToRemove}/`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name="csrfmiddlewaretoken"]').value
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    document.getElementById(`person-${personToRemove}`).remove();
+                    document.getElementById('confirmation-modal').style.display = 'none';
+                } else {
+                    alert('Erro ao remover pessoa.');
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
+    
+        document.getElementById('cancel-remove').addEventListener('click', function() {
+            document.getElementById('confirmation-modal').style.display = 'none';
+            personToRemove = null;
+        });
+    
+        document.getElementById('close-confirmation').addEventListener('click', function() {
+            document.getElementById('confirmation-modal').style.display = 'none';
+            personToRemove = null;
+        });
+    
+        document.getElementById('add-person').addEventListener('click', function() {
+            document.getElementById('add-person-popup').style.display = 'block';
+        });
+    
+        document.getElementById('close-popup').addEventListener('click', function() {
+            document.getElementById('add-person-popup').style.display = 'none';
+        });
+    
+        document.getElementById('clear-fields').addEventListener('click', function() {
+            document.getElementById('add-person-form').reset();
+        });
+    
+        document.getElementById('add-person-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const data = Object.fromEntries(formData.entries());
+    
+            fetch('{% url "add_person" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name="csrfmiddlewaretoken"]').value,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(data)
             })
             .then(response => response.json())
-            .then(data => {
-                document.querySelector(`#qualificacao-${personId}`).innerText = data.qualificacao;
+            .then(person => {
+                // Adicionar a nova pessoa ao DOM
+                const container = document.getElementById('pessoa-container');
+                const newPersonHtml = `
+                <div class="person-card" id="person-${person.id}">
+                    <form method="post" action="/extrator/alterar-pessoa/${person.id}/">
+                        {% csrf_token %}
+                        <input type="hidden" name="id" value="${person.id}">
+                        <table class="table">
+                            <tr>
+                                <th>Condição</th>
+                                <td>
+                                    <select name="condicao" class="form-select" data-person-id="${person.id}">
+                                        <option value="Agente" ${person.condicao == 'Agente' ? 'selected' : ''}>Agente</option>
+                                        <option value="Vítima" ${person.condicao == 'Vítima' ? 'selected' : ''}>Vítima</option>
+                                        <option value="Testemunha" ${person.condicao == 'Testemunha' ? 'selected' : ''}>Testemunha</option>
+                                    </select>
+                                </td>
+                                <th>Alcunha</th>
+                                <td><input type="text" name="alcunha" class="input-field" value="${person.alcunha}" data-person-id="${person.id}"></td>
+                            </tr>
+                            <tr>
+                                <th>Nome</th>
+                                <td colspan="3"><input type="text" name="nome" class="input-field" value="${person.nome}" data-person-id="${person.id}"></td>
+                            </tr>
+                            <tr>
+                                <th>Pai</th>
+                                <td><input type="text" name="nome_pai" class="input-field" value="${person.nome_pai}" data-person-id="${person.id}"></td>
+                                <th>Mãe</th>
+                                <td><input type="text" name="nome_mae" class="input-field" value="${person.nome_mae}" data-person-id="${person.id}"></td>
+                            </tr>
+                            <tr>
+                                <th>Nascimento</th>
+                                <td><input type="date" name="data_nascimento" class="input-field date-input" value="${person.data_nascimento || ''}" data-person-id="${person.id}"></td>
+                                <th>Sexo</th>
+                                <td>
+                                    <select name="sexo" class="form-select" data-person-id="${person.id}">
+                                        <option value="Masculino" ${person.sexo == 'Masculino' ? 'selected' : ''}>Masculino</option>
+                                        <option value="Feminino" ${person.sexo == 'Feminino' ? 'selected' : ''}>Feminino</option>
+                                        <option value="Outro" ${person.sexo == 'Outro' ? 'selected' : ''}>Outro</option>
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>CPF</th>
+                                <td><input type="text" name="cpf" class="input-field" value="${person.cpf || ''}" data-person-id="${person.id}"></td>
+                                <th>Cor Pele</th>
+                                <td><input type="text" name="cor_pele" class="input-field" value="${person.cor_pele || ''}" data-person-id="${person.id}"></td>
+                            </tr>
+                            <tr>
+                                <th>Estado Civil</th>
+                                <td><input type="text" name="estado_civil" class="input-field" value="${person.estado_civil || ''}" data-person-id="${person.id}"></td>
+                                <th>Instrução</th>
+                                <td>
+                                    <select name="grau_instrucao" class="form-select" data-person-id="${person.id}">
+                                        <option value="Ensino fundamental incompleto" ${person.grau_instrucao == 'Ensino fundamental incompleto' ? 'selected' : ''}>Ensino fundamental incompleto</option>
+                                        <option value="Ensino fundamental" ${person.grau_instrucao == 'Ensino fundamental' ? 'selected' : ''}>Ensino fundamental</option>
+                                        <option value="Ensino médio incompleto" ${person.grau_instrucao == 'Ensino médio incompleto' ? 'selected' : ''}>Ensino médio incompleto</option>
+                                        <option value="Ensino médio" ${person.grau_instrucao == 'Ensino médio' ? 'selected' : ''}>Ensino médio</option>
+                                        <option value="Ensino superior incompleto" ${person.grau_instrucao == 'Ensino superior incompleto' ? 'selected' : ''}>Ensino superior incompleto</option>
+                                        <option value="Ensino superior" ${person.grau_instrucao == 'Ensino superior' ? 'selected' : ''}>Ensino superior</option>
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Naturalidade</th>
+                                <td>
+                                    <input type="text" name="naturalidade" class="input-field naturalidade-input" value="${person.naturalidade || ''}" data-person-id="${person.id}"> /
+                                    <input type="text" name="naturalidade_UF" class="input-field uf-input" value="${person.naturalidade_UF || ''}" data-person-id="${person.id}">
+                                </td>
+                                <th>Nacionalidade</th>
+                                <td><input type="text" name="nacionalidade" class="input-field" value="${person.nacionalidade || ''}" data-person-id="${person.id}"></td>
+                            </tr>
+                            <tr>
+                                <th>Tipo Doc.</th>
+                                <td><input type="text" name="documento" class="input-field" value="${person.documento || ''}" data-person-id="${person.id}"></td>
+                                <th>Nº Doc.</th>
+                                <td><input type="text" name="numero_documento" class="input-field" value="${person.numero_documento || ''}" data-person-id="${person.id}"></td>
+                            </tr>
+                            <tr>
+                                <th>Endereço</th>
+                                <td colspan="3"><input type="text" name="endereco" class="input-field" value="${person.endereco || ''}" data-person-id="${person.id}"></td>
+                            </tr>
+                            <tr>
+                                <th>End. Prof.</th>
+                                <td colspan="3"><input type="text" name="end_profissional" class="input-field" value="${person.end_profissional || ''}" data-person-id="${person.id}"></td>
+                            </tr>
+                            <tr>
+                                <th>Profissão</th>
+                                <td><input type="text" name="profissao" class="input-field" value="${person.profissao || ''}" data-person-id="${person.id}"></td>
+                                <th>Representa</th>
+                                <td><input type="checkbox" name="representa" class="checkbox-field" ${person.representa ? 'checked' : ''} data-person-id="${person.id}"></td>
+                            </tr>
+                        </table>
+                    </form>
+                    <div class="qualificacao" id="qualificacao-${person.id}">
+                        ${person.qualificacao}
+                    </div>
+                    <button class="btn-common remove-person-button" data-person-id="${person.id}">Remover Pessoa</button>
+                    <button class="btn-common search-cep-button" data-person-id="${person.id}">Pesquisar CEP</button>
+                </div>`;
+                container.insertAdjacentHTML('beforeend', newPersonHtml);
+    
+                document.querySelector(`#person-${person.id} .remove-person-button`).addEventListener('click', function() {
+                    personToRemove = person.id;
+                    document.getElementById('confirmation-modal').style.display = 'block';
+                });
+    
+                document.querySelectorAll(`#person-${person.id} input, #person-${person.id} select`).forEach(function(element) {
+                    element.addEventListener('change', function(event) {
+                        const personId = event.target.getAttribute('data-person-id');
+                        updateQualification(personId);
+                    });
+                });
+    
+                document.querySelectorAll(`#person-${person.id} .search-cep-button`).forEach(function(button) {
+                    button.addEventListener('click', function() {
+                        const personId = button.getAttribute('data-person-id');
+                        pesquisarCEP(personId);
+                    });
+                });
+    
+                document.getElementById('add-person-popup').style.display = 'none';
+                document.getElementById('add-person-form').reset();
             })
             .catch(error => console.error('Error:', error));
         });
     });
-
-    document.querySelectorAll('.remove-person-button').forEach(function(button) {
-        button.addEventListener('click', function() {
-            personToRemove = button.getAttribute('data-person-id');
-            document.getElementById('confirmation-modal').style.display = 'block';
-        });
-    });
-
-    document.getElementById('confirm-remove').addEventListener('click', function() {
-        fetch(`/extrator/remove-person/${personToRemove}/`, {
-            method: 'DELETE',
-            headers: {
-                'X-CSRFToken': document.querySelector('[name="csrfmiddlewaretoken"]').value
-            }
-        })
-        .then(response => {
-            if (response.ok) {
-                document.getElementById(`person-${personToRemove}`).remove();
-                document.getElementById('confirmation-modal').style.display = 'none';
-            } else {
-                alert('Erro ao remover pessoa.');
-            }
-        })
-        .catch(error => console.error('Error:', error));
-    });
-
-    document.getElementById('cancel-remove').addEventListener('click', function() {
-        document.getElementById('confirmation-modal').style.display = 'none';
-        personToRemove = null;
-    });
-
-    document.getElementById('close-confirmation').addEventListener('click', function() {
-        document.getElementById('confirmation-modal').style.display = 'none';
-        personToRemove = null;
-    });
-
-    document.getElementById('add-person').addEventListener('click', function() {
-        document.getElementById('add-person-popup').style.display = 'block';
-    });
-
-    document.getElementById('close-popup').addEventListener('click', function() {
-        document.getElementById('add-person-popup').style.display = 'none';
-    });
-
-    document.getElementById('clear-fields').addEventListener('click', function() {
-        document.getElementById('add-person-form').reset();
-    });
-
-    document.getElementById('add-person-form').addEventListener('submit', function(event) {
-        event.preventDefault();
-        const formData = new FormData(event.target);
-        const data = Object.fromEntries(formData.entries());
-
-        fetch('{% url "add_person" %}', {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': document.querySelector('[name="csrfmiddlewaretoken"]').value,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        })
-        .then(response => response.json())
-        .then(person => {
-            // Adicionar a nova pessoa ao DOM
-            const container = document.getElementById('pessoa-container');
-            const newPersonHtml = `
-            <div class="person-card" id="person-${person.id}">
-                <form method="post" action="/extrator/alterar-pessoa/${person.id}/">
-                    {% csrf_token %}
-                    <input type="hidden" name="id" value="${person.id}">
-                    <table class="table">
-                        <tr>
-                            <th>Condição</th>
-                            <td>
-                                <select name="condicao" class="form-select" data-person-id="${person.id}">
-                                    <option value="Agente" ${person.condicao == 'Agente' ? 'selected' : ''}>Agente</option>
-                                    <option value="Vítima" ${person.condicao == 'Vítima' ? 'selected' : ''}>Vítima</option>
-                                    <option value="Testemunha" ${person.condicao == 'Testemunha' ? 'selected' : ''}>Testemunha</option>
-                                </select>
-                            </td>
-                            <th>Alcunha</th>
-                            <td><input type="text" name="alcunha" class="input-field" value="${person.alcunha}" data-person-id="${person.id}"></td>
-                        </tr>
-                        <tr>
-                            <th>Nome</th>
-                            <td colspan="3"><input type="text" name="nome" class="input-field" value="${person.nome}" data-person-id="${person.id}"></td>
-                        </tr>
-                        <tr>
-                            <th>Pai</th>
-                            <td><input type="text" name="nome_pai" class="input-field" value="${person.nome_pai}" data-person-id="${person.id}"></td>
-                            <th>Mãe</th>
-                            <td><input type="text" name="nome_mae" class="input-field" value="${person.nome_mae}" data-person-id="${person.id}"></td>
-                        </tr>
-                        <tr>
-                            <th>Nascimento</th>
-                            <td><input type="date" name="data_nascimento" class="input-field date-input" value="${person.data_nascimento || ''}" data-person-id="${person.id}"></td>
-                            <th>Sexo</th>
-                            <td>
-                                <select name="sexo" class="form-select" data-person-id="${person.id}">
-                                    <option value="Masculino" ${person.sexo == 'Masculino' ? 'selected' : ''}>Masculino</option>
-                                    <option value="Feminino" ${person.sexo == 'Feminino' ? 'selected' : ''}>Feminino</option>
-                                    <option value="Outro" ${person.sexo == 'Outro' ? 'selected' : ''}>Outro</option>
-                                </select>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th>CPF</th>
-                            <td><input type="text" name="cpf" class="input-field" value="${person.cpf || ''}" data-person-id="${person.id}"></td>
-                            <th>Cor Pele</th>
-                            <td><input type="text" name="cor_pele" class="input-field" value="${person.cor_pele || ''}" data-person-id="${person.id}"></td>
-                        </tr>
-                        <tr>
-                            <th>Estado Civil</th>
-                            <td><input type="text" name="estado_civil" class="input-field" value="${person.estado_civil || ''}" data-person-id="${person.id}"></td>
-                            <th>Instrução</th>
-                            <td>
-                                <select name="grau_instrucao" class="form-select" data-person-id="${person.id}">
-                                    <option value="Ensino fundamental incompleto" ${person.grau_instrucao == 'Ensino fundamental incompleto' ? 'selected' : ''}>Ensino fundamental incompleto</option>
-                                    <option value="Ensino fundamental" ${person.grau_instrucao == 'Ensino fundamental' ? 'selected' : ''}>Ensino fundamental</option>
-                                    <option value="Ensino médio incompleto" ${person.grau_instrucao == 'Ensino médio incompleto' ? 'selected' : ''}>Ensino médio incompleto</option>
-                                    <option value="Ensino médio" ${person.grau_instrucao == 'Ensino médio' ? 'selected' : ''}>Ensino médio</option>
-                                    <option value="Ensino superior incompleto" ${person.grau_instrucao == 'Ensino superior incompleto' ? 'selected' : ''}>Ensino superior incompleto</option>
-                                    <option value="Ensino superior" ${person.grau_instrucao == 'Ensino superior' ? 'selected' : ''}>Ensino superior</option>
-                                </select>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th>Naturalidade</th>
-                            <td>
-                                <input type="text" name="naturalidade" class="input-field naturalidade-input" value="${person.naturalidade || ''}" data-person-id="${person.id}"> /
-                                <input type="text" name="naturalidade_UF" class="input-field uf-input" value="${person.naturalidade_UF || ''}" data-person-id="${person.id}">
-                            </td>
-                            <th>Nacionalidade</th>
-                            <td><input type="text" name="nacionalidade" class="input-field" value="${person.nacionalidade || ''}" data-person-id="${person.id}"></td>
-                        </tr>
-                        <tr>
-                            <th>Tipo Doc.</th>
-                            <td><input type="text" name="documento" class="input-field" value="${person.documento || ''}" data-person-id="${person.id}"></td>
-                            <th>Nº Doc.</th>
-                            <td><input type="text" name="numero_documento" class="input-field" value="${person.numero_documento || ''}" data-person-id="${person.id}"></td>
-                        </tr>
-                        <tr>
-                            <th>Endereço</th>
-                            <td colspan="3"><input type="text" name="endereco" class="input-field" value="${person.endereco || ''}" data-person-id="${person.id}"></td>
-                        </tr>
-                        <tr>
-                            <th>End. Prof.</th>
-                            <td colspan="3"><input type="text" name="end_profissional" class="input-field" value="${person.end_profissional || ''}" data-person-id="${person.id}"></td>
-                        </tr>
-                        <tr>
-                            <th>Profissão</th>
-                            <td><input type="text" name="profissao" class="input-field" value="${person.profissao || ''}" data-person-id="${person.id}"></td>
-                            <th>Representa</th>
-                            <td><input type="checkbox" name="representa" class="checkbox-field" ${person.representa ? 'checked' : ''} data-person-id="${person.id}"></td>
-                        </tr>
-                    </table>
-                </form>
-                <div class="qualificacao" id="qualificacao-${person.id}">
-                    ${person.qualificacao}
-                </div>
-                <button class="btn-common remove-person-button" data-person-id="${person.id}">Remover Pessoa</button>
-            </div>`;
-            container.insertAdjacentHTML('beforeend', newPersonHtml);
-
-            document.querySelector(`#person-${person.id} .remove-person-button`).addEventListener('click', function() {
-                personToRemove = person.id;
-                document.getElementById('confirmation-modal').style.display = 'block';
-            });
-
-            document.querySelectorAll(`#person-${person.id} input, #person-${person.id} select`).forEach(function(element) {
-                element.addEventListener('change', function(event) {
-                    const personId = event.target.getAttribute('data-person-id');
-                    updateQualification(personId);
-                });
-            });
-
-            document.getElementById('add-person-popup').style.display = 'none';
-            document.getElementById('add-person-form').reset();
-        })
-        .catch(error => console.error('Error:', error));
-    });
-});
 </script>
 {% endblock %}

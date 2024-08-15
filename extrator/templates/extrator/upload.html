@@ -2,13 +2,14 @@
 
 {% block content %}
 <h2 class="title-shadow">Carregar a ocorrência</h2>
-<form method="post" enctype="multipart/form-data">
+<form id="upload-form" method="post" action="{% url 'upload_file' %}" enctype="multipart/form-data">
     {% csrf_token %}
     <label for="file-upload" class="action-button btn-common">Escolher arquivo</label>
     <input id="file-upload" type="file" name="file" required>
     <span id="file-chosen">Nenhum arquivo escolhido</span>
     <button type="submit" class="action-button btn-common">Upload</button>
 </form>
+<div id="upload-status"></div>
 
 <script>
 document.getElementById('file-upload').addEventListener('change', function() {
@@ -16,10 +17,32 @@ document.getElementById('file-upload').addEventListener('change', function() {
     document.getElementById('file-chosen').textContent = fileName;
 });
 
-document.querySelector('label[for="file-upload"]').addEventListener('click', function(event) {
-    // Impedir o evento padrão para garantir que o clique não seja duplicado
+document.getElementById('upload-form').addEventListener('submit', function(event) {
     event.preventDefault();
-    document.getElementById('file-upload').click();
+    const form = document.getElementById('upload-form');
+    const formData = new FormData(form);
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    fetch(form.action, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        const statusDiv = document.getElementById('upload-status');
+        if (data.success) {
+            window.location.href = data.redirect_url;
+        } else {
+            statusDiv.innerHTML = `<p>Erro no upload: ${data.error}</p>`;
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        document.getElementById('upload-status').innerHTML = `<p>Erro no upload: ${error}</p>`;
+    });
 });
 </script>
 {% endblock %}
