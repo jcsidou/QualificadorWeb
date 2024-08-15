@@ -268,11 +268,12 @@ def extract_address_info(request):
             return JsonResponse({'error': 'Texto não fornecido'}, status=400)
 
         # Extrair telefone fixo
-        phone = re.search(r'(tel)?.one\s*\(?(\d{,2})\)?\s*(\d{4,5}-?\d{4})', text)
-        phone = f"({phone.group(1)}) {phone.group(2)}" if phone else None
+        # phone = re.search(r'(tel)?.one\s*\(?(\d{,2})\)?\s*(\d{4,5}-?\d{4})', text)
+        phone = re.search(r'([t|T]ele)?[F|f]one\s*\(?(\d{,2})\)?\s*(\d{4}-?\d{4})', text)
+        phone = f"({phone.group(2)}) {phone.group(3)}" if phone else None
 
         # Extrair celular
-        mobile = re.search(r'.elular\s*\(?(\d{,2})\)?\s*(9\d{4}-?\d{4})', text)
+        mobile = re.search(r'[c|C]el[ular]*\s*\(?(\d{,2})\)?\s*([9|8]\d{3,4}-?\d{4})', text)
         mobile = f"({mobile.group(1)}) {mobile.group(2)}" if mobile else None
 
         # Extrair e-mail (se houver)
@@ -280,8 +281,8 @@ def extract_address_info(request):
         email = email.group(0) if email else None
 
         # Remover telefone, celular e e-mail do texto
-        clean_text = re.sub(r'(tel)?.one\s*\(?\d{,2}\)?\s*\d{4}-?\d{4}', '', text)
-        clean_text = re.sub(r'.elular\s*\(?\d{,2}\)?\s*\d{5}-?\d{4}', '', clean_text)
+        clean_text = re.sub(r'([t|T]ele)?[F|f]one\s*(\(?\d{,2}\)\s*\d{4}-?\d{4})', '', text)
+        clean_text = re.sub(r'[c|C]el[ular]*\s*\(?(\d{,2})\)?\s*([9|8]\d{3,4}-?\d{4})', '', clean_text)
         clean_text = re.sub(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', '', clean_text).strip()
 
         # Extrair CEP (se houver)
