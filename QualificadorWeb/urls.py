@@ -5,5 +5,5 @@ from extrator import views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('extrator/', include('extrator.urls')),
-    path('', views.upload_file_view, name='home'),  # Define a rota padrão
+    path('', views.upload_success_view, name='home'),  # Define a rota padrão
 ]

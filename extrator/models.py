@@ -32,6 +32,10 @@ class Pessoa(models.Model):
     end_profissional = models.CharField(max_length=255, blank=True, null=True)
     profissao = models.CharField(max_length=100, blank=True, null=True)
     representa = models.BooleanField(default=False, blank=True, null=True)
+    requerMPU = models.BooleanField(default=False, blank=True, null=True)
+    telefone = models.CharField(max_length=100, blank=True, null=True)
+    celular = models.CharField(max_length=100, blank=True, null=True)
+    email = models.CharField(max_length=100, blank=True, null=True)
     
     def __str__(self):
         return self.nome if self.nome else "Pessoa sem nome"

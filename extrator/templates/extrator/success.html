@@ -3,11 +3,14 @@
 {% block content %}
 <h2 class="title-shadow">Participantes Criados</h2>
 <div class="action-bar">
+    <button class="action-button btn-common" id="upload-file-button">Carregar arquivo</button>
     <button class="action-button btn-common" id="add-person">Acrescentar Pessoa</button>
-    <button class="action-button btn-common" id="qualify-all">Qualificar Todos</button>
+    {% comment %} <button class="action-button btn-common" id="qualify-all">Qualificar Todos</button> {% endcomment %}
 </div>
+
 <div class="container" id="pessoa-container">
     {% for pessoa in pessoas %}
+    {% if pessoa.id is not None %}
         <div class="person-card" id="person-{{ pessoa.id }}">
             <form method="post" action="{% url 'alterar_pessoa' pessoa.id %}">
                 {% csrf_token %}
@@ -37,7 +40,10 @@
                     </tr>
                     <tr>
                         <th>Nascimento</th>
-                        <td><input type="date" name="data_nascimento" class="input-field date-input" value="{{ pessoa.data_nascimento|date:'Y-m-d' }}" data-person-id="{{ pessoa.id }}"></td>
+                        <td><input type="date" name="data_nascimento" class="input-field date-input" 
+                            value="{{ pessoa.data_nascimento|date:'d/m/Y' }}" 
+                            data-person-id="{{ pessoa.id }}">
+                        </td>
                         <th>Sexo</th>
                         <td>
                             <select name="sexo" class="form-select" data-person-id="{{ pessoa.id }}">
@@ -105,9 +111,24 @@
             <button class="btn-common remove-person-button" data-person-id="{{ pessoa.id }}">Remover Pessoa</button>
             <button class="btn-common search-cep-button" data-person-id="{{ pessoa.id }}">Pesquisar CEP</button>
         </div>
+    {% endif %}
     {% endfor %}
 </div>
-
+<!-- Formulário Popup para upload de arquivo -->
+<div id="upload-popup" class="popup">
+    <div class="popup-content">
+        <span class="close" id="close-upload-popup">&times;</span>
+        <h2>Carregar a ocorrência</h2>
+        <form id="upload-form" method="post" action="{% url 'upload_file' %}" enctype="multipart/form-data">
+            {% csrf_token %}
+            <label for="file-upload" class="action-button btn-common">Escolher arquivo</label>
+            <input id="file-upload" type="file" name="file" required>
+            <span id="file-chosen">Nenhum arquivo escolhido</span>
+            <button type="submit" class="action-button btn-common">Upload</button>
+        </form>
+        <div id="upload-status"></div>
+    </div>
+</div>
 <!-- Formulário Popup para adicionar pessoa -->
 <div id="add-person-popup" class="popup">
     <div class="popup-content">
@@ -513,6 +534,46 @@
             })
             .catch(error => console.error('Error:', error));
         });
+    });
+    document.getElementById('file-upload').addEventListener('change', function() {
+        const fileName = this.files[0].name;
+        document.getElementById('file-chosen').textContent = fileName;
+    });
+    
+    document.getElementById('upload-form').addEventListener('submit', function(event) {
+        event.preventDefault();
+        const form = document.getElementById('upload-form');
+        const formData = new FormData(form);
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+        fetch(form.action, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            const statusDiv = document.getElementById('upload-status');
+            if (data.success) {
+                window.location.href = data.redirect_url;
+            } //else {
+                //statusDiv.innerHTML = `<p>Erro no upload(a): ${data.error}</p>`;
+            //}
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            document.getElementById('upload-status').innerHTML = `<p>Erro no upload(b): ${error}</p>`;
+        });
+    });
+    
+    document.getElementById('upload-file-button').addEventListener('click', function() {
+        document.getElementById('upload-popup').style.display = 'block';
+    });
+    
+    document.getElementById('close-upload-popup').addEventListener('click', function() {
+        document.getElementById('upload-popup').style.display = 'none';
     });
 </script>
 {% endblock %}

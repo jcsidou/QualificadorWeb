@@ -12,14 +12,21 @@
 <div id="upload-status"></div>
 
 <script>
-document.getElementById('file-upload').addEventListener('change', function() {
-    const fileName = this.files[0].name;
-    document.getElementById('file-chosen').textContent = fileName;
-});
+function updateFileChosen() {
+    const fileInput = document.getElementById('file-upload');
+    const fileChosen = document.getElementById('file-chosen');
+    if (fileInput.files.length > 0) {
+        fileChosen.textContent = fileInput.files[0].name;
+    } else {
+        fileChosen.textContent = 'Nenhum arquivo escolhido';
+    }
+}
+
+document.getElementById('file-upload').addEventListener('change', updateFileChosen);
 
 document.getElementById('upload-form').addEventListener('submit', function(event) {
     event.preventDefault();
-    const form = document.getElementById('upload-form');
+    const form = this;
     const formData = new FormData(form);
     const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
@@ -34,6 +41,10 @@ document.getElementById('upload-form').addEventListener('submit', function(event
     .then(data => {
         const statusDiv = document.getElementById('upload-status');
         if (data.success) {
+            statusDiv.innerHTML = '<p>Upload realizado com sucesso!</p>';
+            form.reset();
+            updateFileChosen();
+            // Se você ainda quiser redirecionar, descomente a linha abaixo
             window.location.href = data.redirect_url;
         } else {
             statusDiv.innerHTML = `<p>Erro no upload: ${data.error}</p>`;

@@ -11,6 +11,7 @@ import uuid
 import random
 import logging
 import requests
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +56,6 @@ CONDICOES_SUBSTITUICOES = {
 def atualizar_condicao(condicao):
     logger.debug(f"Atualizando condição: {condicao}")
     condicao_ajustada = CONDICOES_SUBSTITUICOES.get(condicao.strip(), condicao.strip())
-    print(condicao_ajustada)
     return condicao_ajustada
 
 def extrair_texto_pdf(arquivo_pdf):
@@ -64,6 +64,13 @@ def extrair_texto_pdf(arquivo_pdf):
     for pagina in leitor.pages:
         texto += pagina.extract_text()
     return texto
+
+def clean_string(input_string: str) -> str:
+    cleaned_string = input_string.replace('\n', ' ').replace('\r', ' ')
+    while '  ' in cleaned_string:
+        cleaned_string = cleaned_string.replace('  ', ' ')
+    cleaned_string = cleaned_string.strip()
+    return cleaned_string
 
 def formatar_nome(nome):
     particulas = ['de', 'da', 'das', 'dos', 'e']
@@ -106,7 +113,7 @@ def obter_qualificacao(pessoa):
     if naturalidade.lower() == 'localidade':
         naturalidade = f'localidade {random.choice(aleatorio_feminino)}'
     cor_pele = str(pessoa.get('cor_pele')).strip().lower() or random.choice(aleatorio_feminino)
-    documento = str(pessoa.get('documento')).strip().lower() or  random.choice(aleatorio_masculino)
+    documento = str(pessoa.get('documento')).strip().lower() or random.choice(aleatorio_masculino)
     sexo = str(pessoa.get('sexo', '')).strip().lower()
 
     if sexo == 'feminino':
@@ -127,8 +134,10 @@ def obter_qualificacao(pessoa):
 def upload_file_view(request):
     if request.method == 'POST':
         # Limpar JSON da sessão
+        logger.debug(f"Dados da sessão antes da limpeza: {request.session['participantes']}")
         request.session['participantes'] = json.dumps([])
-
+        logger.debug(f"Dados da sessão após a limpeza: {request.session['participantes']}")
+        
         form = UploadFileForm(request.POST, request.FILES)
         if form.is_valid():
             arquivo = request.FILES['file']
@@ -139,9 +148,33 @@ def upload_file_view(request):
             for matchNum, match in enumerate(matches, start=1):
                 participante = match.groupdict()
                 participante['id'] = matchNum
+                participante['condicao'] = atualizar_condicao(participante['condicao'])
+                
+                if participante['nome_pai'] and participante['nome_pai'].strip()!="-":
+                    participante['nome_pai'] = formatar_nome(participante['nome_pai'])
+                else: 
+                    participante['nome_pai']=''
+                
+                if participante['nome_mae'] and participante['nome_mae'].strip()!="-":
+                    participante['nome_mae'] = formatar_nome(participante['nome_mae'])
+                else:
+                    participante['nome_mae']=''
+                                
+                if participante['grau_instrucao']:
+                    participante['grau_instrucao'] = clean_string(participante['grau_instrucao'])
+                
+                if participante['naturalidade']:
+                    participante['naturalidade'] = clean_string(participante['naturalidade'])
+                
+                if participante['endereco']:
+                    participante['endereco'] = clean_string(participante['endereco']).rstrip('.')
+                
+                participante['qualificacao'] = obter_qualificacao(participante)
                 participantes.append(participante)
 
             request.session['pessoas'] = participantes
+            
+            logger.debug(f"Pessoas gravadas na sessão: {participantes}")
             return JsonResponse({'success': True, 'redirect_url': reverse('upload_success')})
         else:
             return JsonResponse({'success': False, 'error': 'Formulário inválido'})
@@ -172,6 +205,7 @@ def alterar_pessoa(request, pessoa_id):
                 pessoa.update(data)
                 pessoa['condicao'] = atualizar_condicao(pessoa['condicao'])
                 pessoa['qualificacao'] = obter_qualificacao(pessoa)
+                
                 pessoa_atualizada = pessoa
                 break
 
@@ -218,6 +252,7 @@ def remove_person(request, id):
 
 def upload_success_view(request):
     pessoas = request.session.get('pessoas', [])
+    logger.debug(f"Pessoas no contexto: {pessoas}")
     return render(request, 'extrator/success.html', {'pessoas': pessoas})
 
 @csrf_exempt
@@ -350,8 +385,10 @@ def extract_address_info(request):
                 address_info['city'] = component['long_name']
             if 'administrative_area_level_1' in component['types']:
                 address_info['state'] = component['short_name']
-            if 'postal_code' in component['types']:
+            if 'postal_code' in component['types'] and 'postal_code' in component['types'] !=None and 'postal_code' in component['types'] !="None":
                 address_info['cep'] = component['long_name']
+            else: 
+                address_info['cep'] = "não localizado"
         
             # Formatar o endereço completo de forma amigável
         friendly_address = f"{address_info['street']}"
@@ -372,9 +409,9 @@ def extract_address_info(request):
         
         if contact_info:
             contact_info_text =", " + ", ".join(contact_info)
-            friendly_address += contact_info_text.strip() + '.'
+            friendly_address += contact_info_text.strip() #+ '.'
         else:
-            friendly_address +="."
+            friendly_address #+="."
 
         return JsonResponse({'endereco': friendly_address})
     else:
