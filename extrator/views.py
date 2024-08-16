@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponseNotAllowed
 from django.views.decorators.csrf import csrf_exempt
 from django.urls import reverse  
+from django.core import serializers
 from .models import Pessoa
 from .forms import UploadFileForm
 from PyPDF2 import PdfReader
@@ -78,6 +79,25 @@ def formatar_nome(nome):
     palavras_formatadas = [palavra.capitalize() if palavra.lower() not in particulas else palavra.lower() for palavra in palavras]
     return ' '.join(palavras_formatadas)
 
+def convert_to_django_date(date_str):
+    """
+    Converts a date string in dd/mm/yyyy format to a valid Django DateField compatible date object.
+    
+    Args:
+        date_str (str): A date string in the format dd/mm/yyyy.
+    
+    Returns:
+        date (date): A date object that can be used in a Django DateField.
+    """
+    try:
+        # Convert string to datetime object
+        date_obj = datetime.strptime(date_str, '%d/%m/%Y')
+        # Return the date part only, compatible with Django DateField
+        return date_obj.date()
+    except ValueError as e:
+        logger.debug(f"Não foi possível converter data {date_str}")
+        raise ValueError(f"Incorrect date format: {date_str}. Expected format: dd/mm/yyyy") from e
+
 def obter_qualificacao(pessoa):
     logger.debug(f"Dados recebidos na função obter_qualificacao: {pessoa}")
 
@@ -115,6 +135,7 @@ def obter_qualificacao(pessoa):
     cor_pele = str(pessoa.get('cor_pele')).strip().lower() or random.choice(aleatorio_feminino)
     documento = str(pessoa.get('documento')).strip().lower() or random.choice(aleatorio_masculino)
     sexo = str(pessoa.get('sexo', '')).strip().lower()
+    
 
     if sexo == 'feminino':
         qualificacao = (f"{nome}, {nacionalidade}, {estado_civil}, {profissao}, "
@@ -133,10 +154,15 @@ def obter_qualificacao(pessoa):
 @csrf_exempt
 def upload_file_view(request):
     if request.method == 'POST':
+        
         # Limpar JSON da sessão
-        logger.debug(f"Dados da sessão antes da limpeza: {request.session['participantes']}")
-        request.session['participantes'] = json.dumps([])
-        logger.debug(f"Dados da sessão após a limpeza: {request.session['participantes']}")
+        try:
+            logger.debug(f"Dados da sessão antes da limpeza: {request.session['participantes']}")
+        except Exception as e:
+            logger.debug(f"Não há dados da sessão.\n{e}")
+        finally:
+            request.session['participantes'] = json.dumps([])
+            logger.debug(f"Dados da sessão após a limpeza: {request.session['participantes']}")
         
         form = UploadFileForm(request.POST, request.FILES)
         if form.is_valid():
@@ -171,10 +197,13 @@ def upload_file_view(request):
                 
                 participante['qualificacao'] = obter_qualificacao(participante)
                 participantes.append(participante)
+                
+                participante['data_nascimento'] = datetime.strptime(participante['data_nascimento'], '%d/%m/%Y').date().isoformat()
 
             request.session['pessoas'] = participantes
             
             logger.debug(f"Pessoas gravadas na sessão: {participantes}")
+            print(participantes)
             return JsonResponse({'success': True, 'redirect_url': reverse('upload_success')})
         else:
             return JsonResponse({'success': False, 'error': 'Formulário inválido'})

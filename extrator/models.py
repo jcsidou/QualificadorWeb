@@ -38,4 +38,4 @@ class Pessoa(models.Model):
     email = models.CharField(max_length=100, blank=True, null=True)
     
     def __str__(self):
-        return self.nome if self.nome else "Pessoa sem nome"
+        return self.nome if self.nome else "Nome não informado"

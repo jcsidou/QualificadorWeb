@@ -40,9 +40,8 @@
                     </tr>
                     <tr>
                         <th>Nascimento</th>
-                        <td><input type="date" name="data_nascimento" class="input-field date-input" 
-                            value="{{ pessoa.data_nascimento|date:'d/m/Y' }}" 
-                            data-person-id="{{ pessoa.id }}">
+                        <td>
+                            <input type="date" name="data_nascimento" class="input-field date-input" value="{{ pessoa.data_nascimento }}">
                         </td>
                         <th>Sexo</th>
                         <td>
@@ -161,7 +160,7 @@
                 </tr>
                 <tr>
                     <th>Nascimento</th>
-                    <td><input type="date" name="data_nascimento" class="input-field date-input" placeholder="DD/MM/YYYY"></td>
+                    <td><input type="date" name="data_nascimento" class="input-field date-input" value="{{ data_nascimento }}"></td>
                     <th>Sexo</th>
                     <td>
                         <select name="sexo" class="form-select">
