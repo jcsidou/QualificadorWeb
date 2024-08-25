@@ -292,7 +292,49 @@
                 console.log(`Erro ao atualizar qualificação: ${error.message}`);
             });
         }
-    
+        
+        // Função para pesquisar dados por CPF
+        document.querySelectorAll('input[name="cpf"]').forEach(function(input) {
+            input.addEventListener('change', function(event) {
+                var cpf = event.target.value;
+                var form = event.target.closest('form');
+
+                // Se o CPF estiver preenchido, mas os outros campos estiverem vazios
+                if (cpf && !form.querySelector('input[name="nome"]').value) {
+                    fetch(`/extrator/buscar-dados-cpf/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': document.querySelector('[name="csrfmiddlewaretoken"]').value,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ cpf: cpf })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            console.log(data);
+
+                            form.querySelector('input[name="nome"]').value = data.nomeContribuinte_s || '';
+                            form.querySelector('input[name="nome_mae"]').value = data.nomeMae_s || '';
+                            form.querySelector('input[name="telefone"]').value = data.telefone_s || '';
+                            form.querySelector('input[name="cep"]').value = data.cep_s || '';
+                            form.querySelector('input[name="logradouro"]').value = data.logradouro_s || '';
+                            form.querySelector('input[name="bairro"]').value = data.bairro_s || '';
+                            form.querySelector('input[name="complemento"]').value = data.complemento_s || '';
+                            form.querySelector('input[name="nroLogradouro"]').value = data.nroLogradouro_s || '';
+                            form.querySelector('input[name="tipoLogradouro"]').value = data.tipoLogradouro_s || '';
+                            form.querySelector('input[name="ufMunDomic"]').value = data.ufMunDomic_s || '';
+                            form.querySelector('input[name="nomeMunDomic"]').value = data.nomeMunDomic_s || '';
+                            // Adicione outros campos conforme necessário
+                        } else {
+                            console.error('Erro ao buscar dados:', data.error);
+                        }
+                    })
+                    .catch(error => console.error('Erro:', error));
+                }
+            });
+        });
+
         function pesquisarCEP(personId) {
             const form = document.querySelector(`#person-${personId} form`);
             const enderecoField = form.querySelector('input[name="endereco"]');
@@ -574,5 +616,6 @@
     document.getElementById('close-upload-popup').addEventListener('click', function() {
         document.getElementById('upload-popup').style.display = 'none';
     });
+
 </script>
 {% endblock %}

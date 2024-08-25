@@ -10,4 +10,5 @@ urlpatterns = [
     path('remove-person/<str:id>/', views.remove_person, name='remove_person'),
     path('atualizar_qualificacao/<int:pessoa_id>/', views.atualizar_qualificacao, name='atualizar_qualificacao'),
     path('extract_address_info/', views.extract_address_info, name='extract_address_info'),
+    path('buscar-dados-cpf/', views.buscar_dados_cpf, name='buscar_dados_cpf'),
 ]

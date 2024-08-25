@@ -13,3 +13,5 @@ str_rodape.txt
 participantes.json
 configs.json
 /pacotes.txt
+.env
+configs.json

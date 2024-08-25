@@ -12,25 +12,29 @@ import uuid
 import random
 import logging
 import requests
+from dotenv import load_dotenv
 from datetime import datetime
+from dynaconf import Dynaconf
 
 logger = logging.getLogger(__name__)
 
 # Carregar a chave API do arquivo settings.json
-with open('./configs.json') as f:
-    settings = json.load(f)
+# with open('./configs.json') as f:
+#     settings = json.load(f)
 
-    openai_api_key = settings.get('OpenAI_API_KEY')
-    if not openai_api_key:
-        raise ValueError("API Key not found in /configs.json")
+#     openai_api_key = settings.get('OpenAI_API_KEY')
+#     if not openai_api_key:
+#         raise ValueError("API Key not found in /configs.json")
 
-    google_maps_api_key = settings.get('Google_Maps_API_KEI')
-    if not google_maps_api_key:
-        raise ValueError("API Key not found in /configs.json")
+#     google_maps_api_key = settings.get('Google_Maps_API_KEI')
+#     if not google_maps_api_key:
+#         raise ValueError("API Key not found in /configs.json")
     
-    regex_pessoas = settings.get('regex_pessoas')
-    if not regex_pessoas:
-        raise ValueError("Regex not found in /configs.json")
+#     regex_pessoas = settings.get('regex_pessoas')
+#     if not regex_pessoas:
+#         raise ValueError("Regex not found in /configs.json")
+
+load_dotenv()
 
 # Substituições para as condições
 CONDICOES_SUBSTITUICOES = {
@@ -445,3 +449,77 @@ def extract_address_info(request):
         return JsonResponse({'endereco': friendly_address})
     else:
         return JsonResponse({'error': 'Método não permitido'}, status=405)
+    
+@csrf_exempt
+def buscar_dados_cpf(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        cpf = data.get('cpf')
+
+        if not cpf:
+            return JsonResponse({'success': False, 'error': 'CPF não fornecido'})
+
+        # Código da função pesquisa_pessoa_cpf adaptado
+        def pesquisa_pessoa_cpf(q='', rows=100, start=0):
+            settings = Dynaconf(
+                settings_files=['/opt/mprs/datalake-hadoop/config/RFB_LOAD_BCADASTRO.toml'],
+            )
+
+            q = q.replace('/', ' ')
+            url = f'{settings.SOLR_URL}/dev-bcadastro-cpf/select/'
+            query = f'(cpfId_s:"{q}"^10)'
+
+            params = {
+                'q': query,
+                'rows': rows,
+                'start': start,
+                'q.op': 'AND',
+                'fl': [
+                    'id',
+                    'nomeContribuinte_s',
+                    'nomeMae_s',
+                    "telefone_s",
+                    "cpfId_s",
+                    "cep_s",
+                    "nomeMunDomic_s",
+                    "logradouro_s",
+                    "bairro_s",
+                    "complemento_s",
+                    "nroLogradouro_s",
+                    "tipoLogradouro_s",
+                    "ufMunDomic_s",
+                    "nomePaisRes_s",
+                    "anoObito_s",
+                    "dtUltAtualiz_dt",
+                    "dtInscricao_dt",
+                ],
+            }
+
+            res = requests.get(
+                url,
+                params=params,
+                verify=False,
+                auth=(settings.SOLR_USER, settings.SOLR_PASS),
+            )
+
+            try:
+                res = res.json()
+                res = res['response']
+            except ValueError as e:
+                print("Erro ao converter resposta para JSON:", e)
+                return None
+
+            return {
+                'status': 'ok',
+                'hits': res['numFound'],
+                'docs': res['docs'],
+                'params': params
+            }
+
+        response_data = pesquisa_pessoa_cpf(cpf)
+        if response_data and 'docs' in response_data and len(response_data['docs']) > 0:
+            return JsonResponse({'success': True, **response_data['docs'][0]})
+        else:
+            return JsonResponse({'success': False, 'error': 'Nenhum dado encontrado'})
+
+    return JsonResponse({'success': False, 'error': 'Método não permitido'})
