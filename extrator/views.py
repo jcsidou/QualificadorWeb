@@ -23,26 +23,37 @@ logger = logging.getLogger(__name__)
 with open('./configs.json') as f:
     settings = json.load(f)
 
-    openai_api_key = settings.get('OpenAI_API_KEY')
+    openai_api_key = settings.get('OPENAI_API_KEY')
     if not openai_api_key:
         raise ValueError("API Key not found in /configs.json")
 
-    google_maps_api_key = settings.get('Google_Maps_API_KEI')
+    google_maps_api_key = settings.get('GOOGLE_MAPS_API_KEI')
     if not google_maps_api_key:
         raise ValueError("API Key not found in /configs.json")
     
-    regex_pessoas = settings.get('regex_pessoas')
+    regex_pessoas = settings.get('REGEX_PESSOAS')
     if not regex_pessoas:
         raise ValueError("Regex not found in /configs.json")
-
-load_dotenv()
-
-# OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
-# GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY')
-# REGEX_PESSOAS = os.getenv('REGEX_PESSOAS')
-# SOLR_USER = os.getenv('SOLR_USER')
-# SOLR_PASS = os.getenv('SOLR_PASS')
-# SOLR_URL = os.getenv('SOLR_URL')
+    
+    regex_cabecalho = settings.get('REGEX_CABECALHO')
+    if not regex_pessoas:
+        raise ValueError("Regex not found in /configs.json")
+    
+    regex_rodape = settings.get('REGEX_RODAPE')
+    if not regex_pessoas:
+        raise ValueError("Regex not found in /configs.json")
+    
+    solr_user = settings.get('SOLR_USER')
+    if not regex_pessoas:
+        raise ValueError("Regex not found in /configs.json")
+    
+    solr_pass = settings.get('SOLR_PASS')
+    if not regex_pessoas:
+        raise ValueError("Regex not found in /configs.json")
+    
+    solr_url = settings.get('SOLR_URL')
+    if not regex_pessoas:
+        raise ValueError("Regex not found in /configs.json")
 
 # Substituições para as condições
 CONDICOES_SUBSTITUICOES = {
@@ -77,31 +88,18 @@ def extrair_texto_pdf(arquivo):
     texto = ""
     for pagina in leitor_pdf.pages:
         texto += pagina.extract_text()
-    with open('original.txt', 'w') as arquivo:
-        arquivo.write(texto)
     texto = excluir_cabecalho(texto)
-    with open('cabecalho.txt', 'w') as arquivo:
-        arquivo.write(texto)
     texto = excluir_rodape(texto)
-    with open('rodape.txt', 'w') as arquivo:
-        arquivo.write(texto)
     return texto
 
 def excluir_cabecalho(texto):
-    padrao = r"(?P<Cabecalho>^.*?)\nDados\s"
-    match = re.search(padrao, texto, flags=re.MULTILINE | re.DOTALL)
+    match = re.search(regex_cabecalho, texto, flags=re.MULTILINE | re.DOTALL)
     cabecalho = match.group('Cabecalho')
-    with open('str_cabecalho.txt', 'w') as arquivo:
-        arquivo.write(cabecalho)
     texto_limpo = texto.replace(cabecalho, '')
     return texto_limpo
 
 def excluir_rodape(texto):
-    padrao = r"ROCP.*\n"
-    match = str(re.findall(padrao, texto))
-    with open('str_rodape.txt', 'w') as arquivo:
-        arquivo.write(match)
-    texto_limpo = re.sub(r'ROCP.*\n', '', texto)
+    texto_limpo = re.sub(regex_rodape, '', texto)
     return texto_limpo
 
 def clean_string(input_string: str) -> str:
@@ -369,11 +367,11 @@ def extract_address_info(request):
 
         # Extrair telefone fixo
         # phone = re.search(r'(tel)?.one\s*\(?(\d{,2})\)?\s*(\d{4,5}-?\d{4})', text)
-        phone = re.search(r'([t|T]ele)?[F|f]one\s*\(?(\d{,2})\)?\s*(\d{4}-?\d{4})', text)
+        phone = re.search(r'([t|T]ele)?[F|f]one\s*\(?(\d{,2})\)?\s*(\d{4}-?\s?\d{4})', text)
         phone = f"({phone.group(2)}) {phone.group(3)}" if phone else None
 
         # Extrair celular
-        mobile = re.search(r'[c|C]el[ular]*\s*\(?(\d{,2})\)?\s*([9|8]\d{3,4}-?\d{4})', text)
+        mobile = re.search(r'[c|C]el[ular]*\s*\(?(\d{,2})\)?\s*([9|8]\d{3,4}-?\s?\d{4})', text)
         mobile = f"({mobile.group(1)}) {mobile.group(2)}" if mobile else None
 
         # Extrair e-mail (se houver)
@@ -381,8 +379,8 @@ def extract_address_info(request):
         email = email.group(0) if email else None
 
         # Remover telefone, celular e e-mail do texto
-        clean_text = re.sub(r'([t|T]ele)?[F|f]one\s*(\(?\d{,2}\)\s*\d{4}-?\d{4})', '', text)
-        clean_text = re.sub(r'[c|C]el[ular]*\s*\(?(\d{,2})\)?\s*([9|8]\d{3,4}-?\d{4})', '', clean_text)
+        clean_text = re.sub(r'([t|T]ele)?[F|f]one\s*\(?(\d{,2})\)?\s*(\d{4}-?\s?\d{4})', '', text)
+        clean_text = re.sub(r'[c|C]el[ular]*\s*\(?(\d{,2})\)?\s*([9|8]\d{3,4}-?\s?\d{4})', '', clean_text)
         clean_text = re.sub(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', '', clean_text).strip()
 
         # Extrair CEP (se houver)
@@ -492,13 +490,14 @@ def buscar_dados_cpf(request):
             return JsonResponse({'success': False, 'error': 'CPF não fornecido'})
 
         # Código da função pesquisa_pessoa_cpf adaptado
-        def pesquisa_pessoa_cpf(q='', rows=100, start=0):
+        def pesquisa_pessoa_cpf(q='', rows=10, start=0):
+            
             settings = Dynaconf(
                 settings_files=['/opt/mprs/datalake-hadoop/config/RFB_LOAD_BCADASTRO.toml'],
             )
 
             q = q.replace('/', ' ')
-            url = f'{settings.SOLR_URL}/dev-bcadastro-cpf/select/'
+            url = f'{solr_url}/dev-bcadastro-cpf/select/'
             query = f'(cpfId_s:"{q}"^10)'
 
             params = {
@@ -531,7 +530,7 @@ def buscar_dados_cpf(request):
                 url,
                 params=params,
                 verify=False,
-                auth=(settings.SOLR_USER, settings.SOLR_PASS),
+                auth=(solr_user, solr_pass),
             )
 
             try:
@@ -549,6 +548,7 @@ def buscar_dados_cpf(request):
             }
 
         response_data = pesquisa_pessoa_cpf(cpf)
+        print(response_data)
         if response_data and 'docs' in response_data and len(response_data['docs']) > 0:
             return JsonResponse({'success': True, **response_data['docs'][0]})
         else:
