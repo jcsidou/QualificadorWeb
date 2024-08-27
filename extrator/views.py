@@ -372,12 +372,12 @@ def extract_address_info(request):
 
         # Extrair telefone fixo
         # phone = re.search(r'(tel)?.one\s*\(?(\d{,2})\)?\s*(\d{4,5}-?\d{4})', text)
-        phone = re.search(r'([t|T]ele)?[F|f]one\s*\(?(\d{,2})\)?\s*(\d{4}-?\s?\d{4})', text)
-        phone = f"({phone.group(2)}) {phone.group(3)}" if phone else None
+        phone = re.search(r'([t|T]ele)?[F|f]one\s*\(?(\d{,2})\)?\s*(\d{4})\s?-?\s?(\d{4})', text)
+        phone = f"({phone.group(2)}) {phone.group(3)}-{phone.group(4)}" if phone else None
 
         # Extrair celular
-        mobile = re.search(r'[c|C]el[ular]*\s*\(?(\d{,2})\)?\s*([9|8]\d{3,4}-?\s?\d{4})', text)
-        mobile = f"({mobile.group(1)}) {mobile.group(2)}" if mobile else None
+        mobile = re.search(r'[c|C]el[ular]*\s*\(?(\d{,2})\)?\s*([9|8]\d{3,4})\s?-?\s?(\d{4})', text)
+        mobile = f"({mobile.group(1)}) {mobile.group(2)}-{mobile.group(3)}" if mobile else None
 
         # Extrair e-mail (se houver)
         email = re.search(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', text)
