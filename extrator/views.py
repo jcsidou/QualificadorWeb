@@ -8,6 +8,7 @@ from .forms import UploadFileForm
 from PyPDF2 import PdfReader
 import json
 import re
+import os
 import uuid
 import random
 import logging
@@ -18,23 +19,30 @@ from dynaconf import Dynaconf
 
 logger = logging.getLogger(__name__)
 
-# Carregar a chave API do arquivo settings.json
-# with open('./configs.json') as f:
-#     settings = json.load(f)
+#Carregar a chave API do arquivo settings.json
+with open('./configs.json') as f:
+    settings = json.load(f)
 
-#     openai_api_key = settings.get('OpenAI_API_KEY')
-#     if not openai_api_key:
-#         raise ValueError("API Key not found in /configs.json")
+    openai_api_key = settings.get('OpenAI_API_KEY')
+    if not openai_api_key:
+        raise ValueError("API Key not found in /configs.json")
 
-#     google_maps_api_key = settings.get('Google_Maps_API_KEI')
-#     if not google_maps_api_key:
-#         raise ValueError("API Key not found in /configs.json")
+    google_maps_api_key = settings.get('Google_Maps_API_KEI')
+    if not google_maps_api_key:
+        raise ValueError("API Key not found in /configs.json")
     
-#     regex_pessoas = settings.get('regex_pessoas')
-#     if not regex_pessoas:
-#         raise ValueError("Regex not found in /configs.json")
+    regex_pessoas = settings.get('regex_pessoas')
+    if not regex_pessoas:
+        raise ValueError("Regex not found in /configs.json")
 
 load_dotenv()
+
+# OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+# GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY')
+# REGEX_PESSOAS = os.getenv('REGEX_PESSOAS')
+# SOLR_USER = os.getenv('SOLR_USER')
+# SOLR_PASS = os.getenv('SOLR_PASS')
+# SOLR_URL = os.getenv('SOLR_URL')
 
 # Substituições para as condições
 CONDICOES_SUBSTITUICOES = {
@@ -63,12 +71,38 @@ def atualizar_condicao(condicao):
     condicao_ajustada = CONDICOES_SUBSTITUICOES.get(condicao.strip(), condicao.strip())
     return condicao_ajustada
 
-def extrair_texto_pdf(arquivo_pdf):
-    leitor = PdfReader(arquivo_pdf)
+def extrair_texto_pdf(arquivo):
+    # Função para extrair texto de um PDF
+    leitor_pdf = PdfReader(arquivo)
     texto = ""
-    for pagina in leitor.pages:
+    for pagina in leitor_pdf.pages:
         texto += pagina.extract_text()
+    with open('original.txt', 'w') as arquivo:
+        arquivo.write(texto)
+    texto = excluir_cabecalho(texto)
+    with open('cabecalho.txt', 'w') as arquivo:
+        arquivo.write(texto)
+    texto = excluir_rodape(texto)
+    with open('rodape.txt', 'w') as arquivo:
+        arquivo.write(texto)
     return texto
+
+def excluir_cabecalho(texto):
+    padrao = r"(?P<Cabecalho>^.*?)\nDados\s"
+    match = re.search(padrao, texto, flags=re.MULTILINE | re.DOTALL)
+    cabecalho = match.group('Cabecalho')
+    with open('str_cabecalho.txt', 'w') as arquivo:
+        arquivo.write(cabecalho)
+    texto_limpo = texto.replace(cabecalho, '')
+    return texto_limpo
+
+def excluir_rodape(texto):
+    padrao = r"ROCP.*\n"
+    match = str(re.findall(padrao, texto))
+    with open('str_rodape.txt', 'w') as arquivo:
+        arquivo.write(match)
+    texto_limpo = re.sub(r'ROCP.*\n', '', texto)
+    return texto_limpo
 
 def clean_string(input_string: str) -> str:
     cleaned_string = input_string.replace('\n', ' ').replace('\r', ' ')
@@ -214,8 +248,6 @@ def upload_file_view(request):
     else:
         form = UploadFileForm()
         return render(request, 'extrator/upload.html', {'form': form})
-
-    return JsonResponse({'error': 'Método não permitido'}, status=405)
 
 @csrf_exempt
 def alterar_pessoa(request, pessoa_id):
