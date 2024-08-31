@@ -3,7 +3,7 @@ from django.http import JsonResponse, HttpResponseNotAllowed
 from django.views.decorators.csrf import csrf_exempt
 from django.urls import reverse  
 from django.core import serializers
-from .models import Pessoa
+from .models import Pessoa, DadosGerais
 from .forms import UploadFileForm
 from PyPDF2 import PdfReader
 import json
@@ -30,7 +30,7 @@ with open('./configs.json') as f:
     google_maps_api_key = settings.get('GOOGLE_MAPS_API_KEI')
     if not google_maps_api_key:
         raise ValueError("API Key not found in /configs.json")
-   
+
     ###Estou com problemas em importar essa regex do JSON.. Por ora, deixei fixo no codigo abaixo
     regex_pessoas = settings.get('REGEX_PESSOAS')
     if not regex_pessoas:
@@ -56,7 +56,8 @@ with open('./configs.json') as f:
     if not regex_pessoas:
         raise ValueError("Regex not found in /configs.json")
 ###
-regex_pessoas='Participante:\\s+(?P<no_participante>\\d+)\\s+-\\s+(?P<condicao>\\w*\\s?\\w*)\\s*(?P<presente>\\w+)?\\nEndere.o:\\s+(?P<endereco>.*\\n?.*\\n)Endere.o\\s\\w+:(?P<end_profissional>.*)(\\n?[\\w|\\s]*representar em juízo.\\s*(?P<representa>Sim|Não)\\n?)?([\\w*\\s]*\\?\\s?(?P<requer_protetiva>Sim|Não))?Estado\\sCivil:\\s+(?P<estado_civil>.*).*\\sGrau\\sde\\s.nstru..o:\\s(?P<grau_instrucao>[\\s\\S\\n]{,30})?Cor.\\w+:\\s(?P<cor_pele>.*)\\nNaturalidade:\\s((?P<naturalidade>.*)[\\n|\\s](?P<naturalidade_uf>[A-Z]{2}))?\\s?Nacionalidade:\\s(?P<nacionalidade>.*)\\sCor .lhos:\\s(?P<cor_olhos>[A-Z][a-z|\\s]*)(?P<nome>[\\w\\s]*)\\sNome:\\s(?P<nome_pai>[\\w|\\s|-]*)\\s\\/\\s(?P<nome_mae>[\\w|\\s|-]*)\\sPai.*\\n\\w*\\s\\w+:\\s(?P<data_nascimento>\\d{2}\\/\\d{2}\\/\\d{4})\\sSexo:\\s(?P<sexo>\\w*\\s?\\w*)\\sCPF:\\s?(?P<cpf>(\\d{3}\\.\\d{3}\\.\\d{3}.\\d{2})?)\\nDocumento:\\s(?P<documento>.*)\\sNúmero:\\s?(?P<numero_documento>\\d*)\\nProfi\\w+:\\s(?P<profissao>.*)?Cargo:\\s(?P<cargo>.*)?Cond\\w*\\s\\w*:\\s(?P<condicao_fisica>.*)?'
+regex_dados_gerais='Dados Gerais\\n.rg.o:\\s+(?P<no_orgao_op>\\d{6})\\s+-?\\s+(?P<orgao_op>[\\S\\s]*)\\s+Ano:\\s+(?P<ano_op>\\d{4})\\s+\\w+:\\s+(?P<no_op>\\d*)\\n.*\\n.ata\\s\\w+:\\s+(?P<data_registro>\\d{2}\\/\\d{2}\\/\\d{4})\\s\\w+\\s(?P<hora_registro>\\d{2}:\\d{2}).*\\n\\w+.\\s+(?P<fato>.*)\\n.\\w+:\\s+(?P<data_fato>\\d{2}\\/\\d{2}\\/\\d{4})[\\s\\w]+(?P<hora_fato>\\d{2}:\\d{2})[\\s\\w]+:\\s(?P<tipo_area>.*)(?P<consumacao>.onsumado|.entado)[\\S\\s\\w]+:.nder.*:\\s+(?P<endereco_fato>.*)\\n\\w+\\n(?P<historico>[\\w\\s\\S]*).rgão de |Participante'
+regex_pessoas='Participante:\\s+(?P<no_participante>\\d+)\\s+-\\s+(?P<condicao>\\w*\\s?\\w*)\\s*(?P<presente>\\w+)?\\nEndere.o:\\s+(?P<endereco>.*\\n?.*)\\nEndere.o\\s\\w+:(?P<end_profissional>.*\\n?.*)(\\n?[\\w|\\s]*representar em juízo.\\s*(?P<representa>Sim|Não)\\n?)?([\\w*\\s]*\\?\\s?(?P<requer_mpu>Sim|Não))?Estado\\sCivil:\\s+(?P<estado_civil>.*).*\\sGrau\\sde\\s.nstru..o:\\s(?P<grau_instrucao>[\\s\\S\\n]{,30})?Cor.\\w+:\\s(?P<cor_pele>.*)\\nNaturalidade:\\s((?P<naturalidade>.*)[\\n|\\s](?P<naturalidade_uf>[A-Z]{2}))?\\s?Nacionalidade:\\s(?P<nacionalidade>.*)\\sCor .lhos:\\s(?P<cor_olhos>[A-Z][a-z|\\s]*)(?P<nome>[\\w\\s]*)\\sNome:\\s(?P<nome_pai>[\\w|\\s|-]*)\\s\\/\\s(?P<nome_mae>[\\w|\\s|-]*)\\sPai.*\\n\\w*\\s\\w+:\\s(?P<data_nascimento>\\d{2}\\/\\d{2}\\/\\d{4})\\sSexo:\\s(?P<sexo>\\w*\\s?\\w*)\\sCPF:\\s?(?P<cpf>(\\d{3}\\.\\d{3}\\.\\d{3}.\\d{2})?)\\nDocumento:\\s(?P<documento>.*)\\sNúmero:\\s?(?P<numero_documento>\\d*)\\nProfi\\w+:\\s(?P<profissao>.*)?Cargo:\\s(?P<cargo>.*)?Cond\\w*\\s\\w*:\\s(?P<condicao_fisica>.*)?'
 regex_cabecalho="(?P<Cabecalho>^.*?)\\nDados\\s"
 regex_rodape="ROCP.*\\n"
 
@@ -166,13 +167,19 @@ def obter_qualificacao(pessoa):
     nacionalidade = str(pessoa.get('nacionalidade')).strip().lower() or f'nacionalidade {random.choice(aleatorio_feminino)}'.strip()
     estado_civil = str(pessoa.get('estado_civil')).strip().lower() or random.choice(aleatorio_masculino)
     profissao = str(pessoa.get('profissao')).strip().lower() or f'''profissão {random.choice(aleatorio_feminino)}'''.strip()
-    grau_instrucao = str(pessoa.get('grau_instrucao')).strip().lower() or random.choice(aleatorio_masculino)
+    grau_instrucao = str(pessoa.get('grau_instrucao')).strip().lower() or f'''grau de instrução {random.choice(aleatorio_masculino)}'''
     numero_documento = str(pessoa.get('numero_documento')).strip().lower() or random.choice(aleatorio_masculino)
     nome_pai = formatar_nome(str(pessoa.get('nome_pai')).strip())
     nome_mae = formatar_nome(str(pessoa.get('nome_mae')).strip())
-    naturalidade = formatar_nome(str(pessoa.get('naturalidade'+'/'+'naturalidade_uf', 'localidade'.lower())).strip()) or 'não esclarecida' or not naturalidade
-    if naturalidade.lower() == 'localidade':
+    
+    naturalidade = formatar_nome(str(pessoa.get('naturalidade'))) or None
+    if not naturalidade:
         naturalidade = f'localidade {random.choice(aleatorio_feminino)}'
+    else:
+        naturalidade_uf = pessoa.get('naturalidade_uf').upper().strip() or None
+        if naturalidade_uf:
+            naturalidade =f'''{naturalidade}/{naturalidade_uf}'''
+    
     cor_pele = str(pessoa.get('cor_pele')).strip().lower() or random.choice(aleatorio_feminino)
     documento = str(pessoa.get('documento')).strip().lower() or random.choice(aleatorio_masculino)
     sexo = str(pessoa.get('sexo', '')).strip().lower()
@@ -180,12 +187,12 @@ def obter_qualificacao(pessoa):
 
     if sexo == 'feminino':
         qualificacao = (f"{nome}, {nacionalidade}, {estado_civil}, {profissao}, "
-                        f"{grau_instrucao}, portadora do R.G. nº {numero_documento}, inscrita no C.P.F. sob nº {cpf}, "
+                        f"{grau_instrucao}, portadora do RG nº {numero_documento}, inscrita no CPF sob nº {cpf}, "
                         f"filha de {nome_pai} e de {nome_mae}, natural de {naturalidade}, de pele {cor_pele}, "
                         f"com endereço na {endereco}.")
     else:
         qualificacao = (f"{nome}, {nacionalidade}, {estado_civil}, {profissao}, "
-                        f"{grau_instrucao}, portador do R.G. nº {numero_documento}, inscrito no C.P.F. sob nº {cpf}, "
+                        f"{grau_instrucao}, portador do RG nº {numero_documento}, inscrito no CPF sob nº {cpf}, "
                         f"filho de {nome_pai} e de {nome_mae}, natural de {naturalidade}, de pele {cor_pele}, "
                         f"com endereço na {endereco}.")
     
@@ -195,21 +202,44 @@ def obter_qualificacao(pessoa):
 @csrf_exempt
 def upload_file_view(request):
     if request.method == 'POST':
-        
         # Limpar JSON da sessão
-        try:
+        try:            
+            logger.debug(f"Dados gerais antes da limpeza: {request.session['dados_gerais']}")
             logger.debug(f"Dados da sessão antes da limpeza: {request.session['participantes']}")
         except Exception as e:
             logger.debug(f"Não há dados da sessão.\n{e}")
         finally:
+            request.session['dados_gerais'] = json.dumps([])
             request.session['participantes'] = json.dumps([])
-            logger.debug(f"Dados da sessão após a limpeza: {request.session['participantes']}")
+            logger.debug(f"Dados gerais após a limpeza: {request.session['dados_gerais']}")
+            logger.debug(f"Dados das pessoas após a limpeza: {request.session['participantes']}")
         
         form = UploadFileForm(request.POST, request.FILES)
         if form.is_valid():
             arquivo = request.FILES['file']
             texto = extrair_texto_pdf(arquivo)
+            print(texto)
+            match = re.search(regex_dados_gerais, texto, re.MULTILINE)
 
+            if match:
+                # Extrair os dados capturados pelos grupos nomeados e armazenar em um dicionário
+                dados_gerais = {
+                    'no_orgao_op': match.group('no_orgao_op'),
+                    'orgao_op': match.group('orgao_op').strip(),
+                    'ano_op': match.group('ano_op'),
+                    'no_op': match.group('no_op'),
+                    'data_registro': datetime.strptime(match.group('data_registro'), "%d/%m/%Y").strftime('%Y-%m-%d'),
+                    'hora_registro': match.group('hora_registro'),
+                    'fato': match.group('fato').strip(),
+                    'data_fato': datetime.strptime(match.group('data_fato'), "%d/%m/%Y").strftime('%Y-%m-%d'),
+                    'hora_fato': match.group('hora_fato'),
+                    'tipo_area': match.group('tipo_area').strip(),
+                    'consumacao': 'Consumado' if 'onsumado' in match.group('consumacao') else 'Tentado',
+                    'endereco_fato': match.group('endereco_fato').strip(),
+                    'historico': match.group('historico').replace('\n', ' ').replace('  ', ' ').strip()
+                }
+                request.session['dados_gerais'] = dados_gerais
+            
             matches = re.finditer(regex_pessoas, texto, re.MULTILINE)
             participantes = []
             for matchNum, match in enumerate(matches, start=1):
@@ -231,7 +261,7 @@ def upload_file_view(request):
                     participante['grau_instrucao'] = clean_string(participante['grau_instrucao'])
                 
                 if participante['naturalidade']:
-                    participante['naturalidade'] = clean_string(participante['naturalidade'])
+                    participante['naturalidade'] = formatar_nome(clean_string(participante['naturalidade']))
                 
                 if participante['endereco']:
                     participante['endereco'] = clean_string(participante['endereco']).rstrip('.')
@@ -244,7 +274,7 @@ def upload_file_view(request):
             request.session['pessoas'] = participantes
             
             logger.debug(f"Pessoas gravadas na sessão: {participantes}")
-            print(participantes)
+            print(request.session)
             return JsonResponse({'success': True, 'redirect_url': reverse('upload_success')})
         else:
             return JsonResponse({'success': False, 'error': 'Formulário inválido'})
@@ -267,7 +297,7 @@ def alterar_pessoa(request, pessoa_id):
         pessoa_atualizada = None
         
         for pessoa in pessoas:
-            logger.debug(f"for pessoa in pessoas")
+            # logger.debug(f"for pessoa in pessoas")
             logger.debug(f"Verificando pessoa com ID: {pessoa['id']} contra {pessoa_id}")
             if str(pessoa['id']) == str(pessoa_id):
                 pessoa.update(data)
@@ -286,6 +316,15 @@ def alterar_pessoa(request, pessoa_id):
             return JsonResponse({'error': 'Pessoa não encontrada'}, status=404)
     return HttpResponseNotAllowed(['POST'])
 
+@csrf_exempt
+def alterar_dados_gerais(request, no_op):
+    if request.method == 'POST':
+        dados_gerais_str = request.session.get('dados_gerais', '[]')
+        dados_gerais = json.loads(dados_gerais_str) if isinstance(dados_gerais_str, str) else dados_gerais_str
+        
+        
+        pass        
+    pass
 
 @csrf_exempt
 def add_person(request):
@@ -293,16 +332,23 @@ def add_person(request):
         data = json.loads(request.body)
 
         # Gerar um ID único para a nova pessoa
-        pessoa_id = str(uuid.uuid4())
-
+        # if not pessoa_id:
+        pessoa_id = len(request.session['pessoas'])+1 # str(uuid.uuid4())
         pessoa = {**data, 'id': pessoa_id}
+        pessoa['no_participante'] = len(request.session['pessoas'])+1
         pessoa['condicao'] = atualizar_condicao(pessoa['condicao'])
         pessoa['qualificacao'] = obter_qualificacao(pessoa)
 
-        # Atualizar JSON na sessão
-        pessoas = request.session.get('pessoas', [])
+        # Certifique-se de que 'pessoas' é uma lista
+        pessoas_str = request.session.get('pessoas', '[]')
+        pessoas = json.loads(pessoas_str) if isinstance(pessoas_str, str) else pessoas_str
+
+        if not isinstance(pessoas, list):
+            pessoas = []  # Caso haja algum erro e 'pessoas' não seja uma lista
+
+        # Adicionar a nova pessoa à lista
         pessoas.append(pessoa)
-        request.session['pessoas'] = pessoas
+        request.session['pessoas'] = json.dumps(pessoas)  # Salvar a lista de volta na sessão
 
         return JsonResponse(pessoa, status=201)
     return HttpResponseNotAllowed(['POST'])
@@ -310,18 +356,29 @@ def add_person(request):
 @csrf_exempt
 def remove_person(request, id):
     if request.method == 'DELETE':
-        # Atualizar JSON na sessão
-        pessoas = request.session.get('pessoas', [])
+        # Carregar pessoas como uma lista de dicionários
+        pessoas_str = request.session.get('pessoas', '[]')
+        pessoas = json.loads(pessoas_str) if isinstance(pessoas_str, str) else pessoas_str
+
+        if not isinstance(pessoas, list):
+            pessoas = []  # Caso haja algum erro e 'pessoas' não seja uma lista
+
+        # Filtrar a lista removendo a pessoa com o ID fornecido
         pessoas = [p for p in pessoas if p['id'] != id]
-        request.session['pessoas'] = pessoas
+
+        # Salvar a lista de volta na sessão
+        request.session['pessoas'] = json.dumps(pessoas)
 
         return JsonResponse({'status': 'success'})
     return HttpResponseNotAllowed(['DELETE'])
 
+
 def upload_success_view(request):
     pessoas = request.session.get('pessoas', [])
+    dados_gerais = request.session.get('dados_gerais', [])
+    logger.debug(f"Dados Gerais para a view: {dados_gerais}")
     logger.debug(f"Pessoas no contexto: {pessoas}")
-    return render(request, 'extrator/success.html', {'pessoas': pessoas})
+    return render(request, 'extrator/success.html', {'pessoas': pessoas, 'dados_gerais': dados_gerais})
 
 @csrf_exempt
 def atualizar_qualificacao(request, pessoa_id):
@@ -340,7 +397,7 @@ def atualizar_qualificacao(request, pessoa_id):
             pessoa_atualizada = None
             for pessoa in pessoas:
                 logger.debug(f"Verificando pessoa: {pessoa}")
-                if str(pessoa['id']) == str(pessoa_id):
+                if str(pessoa['id']) == str(pessoa_id):  # Usando pessoa_id aqui
                     pessoa['qualificacao'] = obter_qualificacao(pessoa)
                     pessoa_atualizada = pessoa
                     break
@@ -357,7 +414,6 @@ def atualizar_qualificacao(request, pessoa_id):
             return JsonResponse({'error': 'Erro ao processar a solicitação'}, status=500)
     return HttpResponseNotAllowed(['POST'])
 
-
 def extract_address_info(request):
     if request.method == 'POST':
         try:
@@ -370,49 +426,71 @@ def extract_address_info(request):
         if not text:
             return JsonResponse({'error': 'Texto não fornecido'}, status=400)
 
-        # Extrair telefone fixo
-        # phone = re.search(r'(tel)?.one\s*\(?(\d{,2})\)?\s*(\d{4,5}-?\d{4})', text)
-        phone = re.search(r'([t|T]ele)?[F|f]one\s*\(?(\d{,2})\)?\s*(\d{4})\s?-?\s?(\d{4})', text)
-        phone = f"({phone.group(2)}) {phone.group(3)}-{phone.group(4)}" if phone else None
-
-        # Extrair celular
-        mobile = re.search(r'[c|C]el[ular]*\s*\(?(\d{,2})\)?\s*([9|8]\d{3,4})\s?-?\s?(\d{4})', text)
-        mobile = f"({mobile.group(1)}) {mobile.group(2)}-{mobile.group(3)}" if mobile else None
+        def extract_phone_numbers(text):
+            # Remover prefixo internacional +55
+            text = re.sub(r'\+55', '', text)
+            
+            # Padrão para telefone fixo e celular
+            pattern = r'(?:(?:Telefone|Fone|Celular|Cel)[:\s]*)?(?:\(?\d{2}\)?[\s.-]?)?(?:\d{4,5}[-.\s]?\d{4})'
+            
+            numbers = re.findall(pattern, text, re.IGNORECASE)
+            
+            phones = []
+            cellphones = []
+            
+            for number in numbers:
+                # Limpar o número
+                clean_number = re.sub(r'\D', '', number)
+                
+                if len(clean_number) == 10:  # Telefone fixo
+                    formatted = f"({clean_number[:2]}) {clean_number[2:6]}-{clean_number[6:]}"
+                    phones.append(formatted)
+                elif len(clean_number) == 11:  # Celular
+                    formatted = f"({clean_number[:2]}) {clean_number[2:7]}-{clean_number[7:]}"
+                    cellphones.append(formatted)
+            
+            return phones, cellphones
+        
+        phones, cellphones = extract_phone_numbers(text)
 
         # Extrair e-mail (se houver)
         email = re.search(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', text)
         email = email.group(0) if email else None
 
-        # Remover telefone, celular e e-mail do texto
-        clean_text = re.sub(r'([t|T]ele)?[F|f]one\s*\(?(\d{,2})\)?\s*(\d{4}-?\s?\d{4})', '', text)
-        clean_text = re.sub(r'[c|C]el[ular]*\s*\(?(\d{,2})\)?\s*([9|8]\d{3,4}-?\s?\d{4})', '', clean_text)
-        clean_text = re.sub(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', '', clean_text).strip()
+        # Remover telefones, celulares e e-mail do texto
+        for phone in phones + cellphones:
+            text = text.replace(phone, '')
+        if email:
+            text = text.replace(email, '')
 
         # Extrair CEP (se houver)
-        cep = re.search(r'\d{5}-?\d{3}', clean_text)
+        cep = re.search(r'\d{5}-?\d{3}', text)
         cep = cep.group(0) if cep else None
-
+        
         # Extrair cidade e estado
-        city_state = re.search(r'([^,]+)\s*-\s*([A-Z]{2})(?:,|\s*$)', clean_text)
+        city_state = re.search(r'([^,]+)\s*-\s*([A-Z]{2})(?:,|\s*$)', text)
         city = city_state.group(1).strip() if city_state else None
         state = city_state.group(2) if city_state else None
 
         # Remover cidade, estado e CEP do texto
-        clean_text = re.sub(r'([^,]+)\s*-\s*[A-Z]{2}(?:,|\s*$)', '', clean_text).strip()
-        clean_text = re.sub(r'\d{5}-?\d{3}', '', clean_text).strip()
+        if city and state:
+            # Correção: Use uma string bruta (r'...') para a expressão regular
+            text = re.sub(rf'{re.escape(city)}\s*-\s*{re.escape(state)}', '', text).strip()
+        if cep:
+            text = text.replace(cep, '').strip()
 
         # Extrair número, complemento e bairro
-        match = re.search(r',\s*(\d+)\s*([^,-]*)(?:-\s*([^,]+))?', clean_text)
+        match = re.search(r',\s*(\d+)\s*([^,-]*)(?:-\s*([^,]+))?', text)
         if match:
             number = match.group(1)
             complement = match.group(2).strip() if match.group(2) else None
             neighborhood = match.group(3).strip() if match.group(3) else None
-            street = re.sub(r',\s*\d+.*$', '', clean_text).strip()
+            street = re.sub(r',\s*\d+.*$', '', text).strip()
         else:
             number = None
             complement = None
             neighborhood = None
-            street = clean_text
+            street = text
 
         # Formar o endereço completo para a consulta
         address_query = f"{street}, {number}, {city}, {state}, {cep}"
@@ -436,8 +514,8 @@ def extract_address_info(request):
             'city': city,
             'state': state,
             'cep': cep,
-            'phone': phone,
-            'mobile': mobile,
+            'phones': phones,
+            'cellphones': cellphones,
             'email': email
         }
 
@@ -458,29 +536,27 @@ def extract_address_info(request):
             else: 
                 address_info['cep'] = "não localizado"
         
-            # Formatar o endereço completo de forma amigável
+        # Formatar o endereço completo de forma amigável
         friendly_address = f"{address_info['street']}"
         if address_info['number']:
             friendly_address += f" nº {address_info['number']}"
-
         if address_info['complement']:
             friendly_address += f" {address_info['complement']}"
-        friendly_address += f", bairro {address_info['neighborhood']}, {address_info['city']}/{address_info['state']}, C.E.P. {address_info['cep']}"
+        friendly_address += f", bairro {address_info['neighborhood']}, {address_info['city']}/{address_info['state']}, CEP {address_info['cep']}"
         
         contact_info = []
-        if address_info['phone']:
-            contact_info.append(f"telefone {address_info['phone']}")
-        if address_info['mobile']:
-            contact_info.append(f"celular {address_info['mobile']}")
+        if address_info['phones']:
+            phone_text = "telefone" if len(address_info['phones']) == 1 else "telefones"
+            contact_info.append(f"{phone_text} {', '.join(address_info['phones'])}")
+        if address_info['cellphones']:
+            cell_text = "celular" if len(address_info['cellphones']) == 1 else "celulares"
+            contact_info.append(f"{cell_text} {', '.join(address_info['cellphones'])}")
         if address_info['email']:
             contact_info.append(f"e-mail {address_info['email']}")
         
         if contact_info:
-            contact_info_text =", " + ", ".join(contact_info)
-            friendly_address += contact_info_text.strip() #+ '.'
-        else:
-            friendly_address #+="."
-
+            contact_info_text = ", " + ", ".join(contact_info)
+            friendly_address += contact_info_text
         return JsonResponse({'endereco': friendly_address})
     else:
         return JsonResponse({'error': 'Método não permitido'}, status=405)
@@ -528,6 +604,11 @@ def buscar_dados_cpf(request):
                     "anoObito_s",
                     "dtUltAtualiz_dt",
                     "dtInscricao_dt",
+                    "codSexo_i",
+                    "dtNasc_dt",
+                    "nomeMunNat_s",
+                    "ufMunNat_s",
+                    "nomePaisNac"
                 ],
             }
 
@@ -552,11 +633,24 @@ def buscar_dados_cpf(request):
                 'params': params
             }
 
-        response_data = pesquisa_pessoa_cpf(cpf)
+        response_data = pesquisa_pessoa_cpf((cpf).replace('.','').replace('-',''))
         print(response_data)
         if response_data and 'docs' in response_data and len(response_data['docs']) > 0:
-            return JsonResponse({'success': True, **response_data['docs'][0]})
+            pessoa_data = response_data['docs'][0]
+            if pessoa_data.get('anoObito_s'):
+                return JsonResponse({
+                    'success': True,
+                    'pessoa': pessoa_data,
+                    'mensagem_obito': f"Consta na base da Receita Federal o óbito de {pessoa_data.get('nomeContribuinte_s')}, responsável pelo CPF {cpf}, em {pessoa_data.get('anoObito_s')}."
+                    })
+            else:
+                # print(pessoa_data)
+                return JsonResponse({'success': True, 'pessoa': pessoa_data})
         else:
             return JsonResponse({'success': False, 'error': 'Nenhum dado encontrado'})
 
     return JsonResponse({'success': False, 'error': 'Método não permitido'})
+
+def verificar_sessao(request):
+    pessoas = json.loads(request.session.get('pessoas', '[]'))
+    return JsonResponse({'pessoas': pessoas})

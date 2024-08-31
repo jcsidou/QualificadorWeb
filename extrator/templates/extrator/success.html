@@ -9,6 +9,56 @@
 </div>
 
 <div class="container" id="pessoa-container">
+    {% if dados_gerais.no_op %}
+    <div class="dados_gerais_card" id="dados-gerais-{{ dados_gerais.no_op }}">
+        <form method="post" action="{% url 'alterar_dados_gerais' dados_gerais.no_op %}">
+            {% csrf_token %}
+            <input type="hidden" name="no_op" value="{{ dados_gerais.no_op }}">
+            <table class="table">
+                <tr>
+                    <th>Órgão</th>
+                    <td><input type="text" name="no_orgao_op" class="input-field" value="{{ dados_gerais.no_orgao_op }}"></td>
+                    <td colspan="2"><input type="text" name="orgao_op" class="input-field" value="{{ dados_gerais.orgao_op }}"></td>
+                    <th>Ano</th>
+                    <td><input type="text" name="ano_op" class="input-field" value="{{ dados_gerais.ano_op }}"></td>
+                    <th>Ocorrência</th>
+                    <td><input type="text" name="no_op" class="input-field" value="{{ dados_gerais.no_op }}"></td>
+                </tr>
+                <tr>
+                    <th>Data do Fato</th>
+                    <td><input type="date" name="data_fato" class="input-field date-input" value="{{ dados_gerais.data_fato }}"></td>
+                    <th>Hora do Fato</th>
+                    <td><input type="time" name="hora_fato" class="input-field time-input" value="{{ dados_gerais.hora_fato }}"></td>
+
+                    <th>Data de Registro</th>
+                    <td><input type="date" name="data_registro" class="input-field date-input" value="{{ dados_gerais.data_registro }}"></td>
+                    <th>Hora de Registro</th>
+                    <td><input type="time" name="hora_registro" class="input-field time-input" value="{{ dados_gerais.hora_registro }}"></td>
+                </tr>
+                <tr>
+                    <th>Descrição do Fato</th>
+                    <td colspan="4"><input type="text" name="fato" class="input-field" value="{{ dados_gerais.fato }}"></td>
+                    <th>Consumação</th>
+                    <td colspan="2">
+                        <select name="consumacao" class="form-select">
+                            <option value="Cons" {% if dados_gerais.consumacao == 'Cons' %}selected{% endif %}>Consumado</option>
+                            <option value="Tent" {% if dados_gerais.consumacao == 'Tent' %}selected{% endif %}>Tentado</option>
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <th>Endereço do Fato</th>
+                    <td colspan="7"><input type="text" name="endereco_fato" class="input-field" value="{{ dados_gerais.endereco_fato }}"></td>
+                </tr>
+                <tr>
+                    <th>Histórico</th>
+                    <td colspan="7"><textarea name="historico" class="textarea-field">{{ dados_gerais.historico }}</textarea></td>
+                </tr>
+            </table>
+        </form>
+       {% comment %} <button class="btn-common save-dados-gerais-button" data-no-op="{{ dados_gerais.no_op }}">Salvar Dados Gerais</button> {% endcomment %}
+    </div>
+    {% endif %}
     {% for pessoa in pessoas %}
     {% if pessoa.id is not None %}
         <div class="person-card" id="person-{{ pessoa.id }}">
@@ -30,13 +80,13 @@
                     </tr>
                     <tr>
                         <th>Nome</th>
-                        <td colspan="3"><input type="text" name="nome" class="input-field" value="{{ pessoa.nome }}" data-person-id="{{ pessoa.id }}"></td>
+                        <td colspan="5"><input type="text" name="nome" class="input-field" value="{{ pessoa.nome }}" data-person-id="{{ pessoa.id }}"></td>
                     </tr>
                     <tr>
                         <th>Pai</th>
                         <td><input type="text" name="nome_pai" class="input-field" value="{{ pessoa.nome_pai }}" data-person-id="{{ pessoa.id }}"></td>
                         <th>Mãe</th>
-                        <td><input type="text" name="nome_mae" class="input-field" value="{{ pessoa.nome_mae }}" data-person-id="{{ pessoa.id }}"></td>
+                        <td colspan="3"><input type="text" name="nome_mae" class="input-field" value="{{ pessoa.nome_mae }}" data-person-id="{{ pessoa.id }}"></td>
                     </tr>
                     <tr>
                         <th>Nascimento</th>
@@ -44,7 +94,7 @@
                             <input type="date" name="data_nascimento" class="input-field date-input" value="{{ pessoa.data_nascimento }}">
                         </td>
                         <th>Sexo</th>
-                        <td>
+                        <td colspan="3">
                             <select name="sexo" class="form-select" data-person-id="{{ pessoa.id }}">
                                 <option value="Masculino" {% if pessoa.sexo == 'Masculino' %}selected{% endif %}>Masculino</option>
                                 <option value="Feminino" {% if pessoa.sexo == 'Feminino' %}selected{% endif %}>Feminino</option>
@@ -56,13 +106,13 @@
                         <th>CPF</th>
                         <td><input type="text" name="cpf" class="input-field" value="{{ pessoa.cpf }}" data-person-id="{{ pessoa.id }}"></td>
                         <th>Cor Pele</th>
-                        <td><input type="text" name="cor_pele" class="input-field" value="{{ pessoa.cor_pele }}" data-person-id="{{ pessoa.id }}"></td>
+                        <td colspan="3"><input type="text" name="cor_pele" class="input-field" value="{{ pessoa.cor_pele }}" data-person-id="{{ pessoa.id }}"></td>
                     </tr>
                     <tr>
                         <th>Estado Civil</th>
                         <td><input type="text" name="estado_civil" class="input-field" value="{{ pessoa.estado_civil }}" data-person-id="{{ pessoa.id }}"></td>
                         <th>Instrução</th>
-                        <td>
+                        <td colspan="3">
                             <select name="grau_instrucao" class="form-select" data-person-id="{{ pessoa.id }}">
                                 <option value="Ensino fundamental incompleto" {% if pessoa.grau_instrucao == 'Ensino fundamental incompleto' %}selected{% endif %}>Ensino fundamental incompleto</option>
                                 <option value="Ensino fundamental" {% if pessoa.grau_instrucao == 'Ensino fundamental' %}selected{% endif %}>Ensino fundamental</option>
@@ -77,30 +127,32 @@
                         <th>Naturalidade</th>
                         <td>
                             <input type="text" name="naturalidade" class="input-field naturalidade-input" value="{{ pessoa.naturalidade }}" data-person-id="{{ pessoa.id }}"> /
-                            <input type="text" name="naturalidade_UF" class="input-field uf-input" value="{{ pessoa.naturalidade_uf }}" data-person-id="{{ pessoa.id }}">
+                            <input type="text" name="naturalidade_uf" class="input-field uf-input" value="{{ pessoa.naturalidade_uf }}" data-person-id="{{ pessoa.id }}">
                         </td>
                         <th>Nacionalidade</th>
-                        <td><input type="text" name="nacionalidade" class="input-field" value="{{ pessoa.nacionalidade }}" data-person-id="{{ pessoa.id }}"></td>
+                        <td colspan="3"><input type="text" name="nacionalidade" class="input-field" value="{{ pessoa.nacionalidade }}" data-person-id="{{ pessoa.id }}"></td>
                     </tr>
                     <tr>
                         <th>Tipo Doc.</th>
                         <td><input type="text" name="documento" class="input-field" value="{{ pessoa.documento }}" data-person-id="{{ pessoa.id }}"></td>
                         <th>Nº Doc.</th>
-                        <td><input type="text" name="numero_documento" class="input-field" value="{{ pessoa.numero_documento }}" data-person-id="{{ pessoa.id }}"></td>
+                        <td colspan="3"><input type="text" name="numero_documento" class="input-field" value="{{ pessoa.numero_documento }}" data-person-id="{{ pessoa.id }}"></td>
                     </tr>
                     <tr>
                         <th>Endereço</th>
-                        <td colspan="3"><input type="text" name="endereco" class="input-field" value="{{ pessoa.endereco }}" data-person-id="{{ pessoa.id }}"></td>
+                        <td colspan="5"><input type="text" name="endereco" class="input-field" value="{{ pessoa.endereco }}" data-person-id="{{ pessoa.id }}"></td>
                     </tr>
                     <tr>
                         <th>End. Prof.</th>
-                        <td colspan="3"><input type="text" name="end_profissional" class="input-field" value="{{ pessoa.end_profissional }}" data-person-id="{{ pessoa.id }}"></td>
+                        <td colspan="5"><input type="text" name="end_profissional" class="input-field" value="{{ pessoa.end_profissional }}" data-person-id="{{ pessoa.id }}"></td>
                     </tr>
                     <tr>
                         <th>Profissão</th>
                         <td><input type="text" name="profissao" class="input-field" value="{{ pessoa.profissao }}" data-person-id="{{ pessoa.id }}"></td>
                         <th>Representa</th>
                         <td><input type="checkbox" name="representa" class="checkbox-field" {% if pessoa.representa %}checked{% endif %} data-person-id="{{ pessoa.id }}"></td>
+                        <th>Requer MPU</th>
+                        <td><input type="checkbox" name="requer_mpu" class="checkbox-field" {% if pessoa.requer_mpu %}checked{% endif %} data-person-id="{{ pessoa.id }}"></td>
                     </tr>
                 </table>
             </form>
@@ -239,11 +291,42 @@
 </div>
 
 <script>
+    function updateQualification(form) {
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+    
+        fetch(form.action, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': form.querySelector('[name="csrfmiddlewaretoken"]').value,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            const qualElem = form.closest('.person-card').querySelector('.qualificacao');
+            if (qualElem) {
+                qualElem.innerHTML = data.qualificacao;
+            } else {
+                console.error('Elemento de qualificação não encontrado');
+            }
+        })
+        .catch(error => console.error('Erro:', error));
+    }
+    // Adicionar evento de mudança para cada campo de input ou select dentro do formulário
+    document.querySelectorAll('.person-card form').forEach(form => {
+        form.querySelectorAll('input, select').forEach(input => {
+            input.addEventListener('change', () => updateQualification(form));
+        });
+    });
+
     document.addEventListener('DOMContentLoaded', function() {
         let personToRemove = null;
-    
+
+        // Função para atualizar os dados na sessão
         function updateSession(personId, data) {
-            return fetch(`/extrator/alterar-pessoa/${personId}/`, {
+            fetch(`/extrator/alterar-pessoa/${personId}/`, {
                 method: 'POST',
                 headers: {
                     'X-CSRFToken': document.querySelector(`[name="csrfmiddlewaretoken"]`).value,
@@ -251,53 +334,80 @@
                 },
                 body: JSON.stringify(data)
             })
-            .then(response => {
-                if (!response.ok) {
-                    return response.json().then(errData => {
-                        throw new Error(errData.error || 'Erro desconhecido');
-                    });
-                }
-                return response.json();
+            .then(response => response.json())
+            .then(updatedPerson => {
+                console.log('Dados da pessoa atualizados na sessão:', updatedPerson);
             })
             .catch(error => {
-                console.error('Error:', error);
-                console.log(`Erro ao atualizar dados da sessão: ${error.message}`);
+                console.error('Erro ao atualizar dados da sessão:', error);
             });
         }
-    
-        function updateQualification(personId) {
-            console.log(`Atualizando qualificação para pessoa_id: ${personId}`);
-            fetch(`/extrator/atualizar_qualificacao/${personId}/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': document.querySelector(`[name="csrfmiddlewaretoken"]`).value,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({qualificacao: ''})  // Enviando uma payload vazia para forçar a atualização
-            })
-            .then(response => {
-                if (!response.ok) {
-                    return response.json().then(errData => {
-                        throw new Error(errData.error || 'Erro desconhecido');
-                    });
-                }
-                return response.json();
-            })
-            .then(data => {
-                document.querySelector(`#qualificacao-${personId}`).innerText = data.qualificacao;
-                console.log('Qualificação atualizada com sucesso!');
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                console.log(`Erro ao atualizar qualificação: ${error.message}`);
-            });
+
+        function getFormData(form) {
+            const formData = new FormData(form);
+            return Object.fromEntries(formData.entries());
         }
+
+        // Atualiza a qualificação da pessoa com base nos dados atuais
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('updateQualification in success.html called');
+            const updateQualification = (form) => {
+                const formData = new FormData(form);
+                const data = Object.fromEntries(formData.entries());
         
+                fetch(form.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': form.querySelector('[name="csrfmiddlewaretoken"]').value,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data.qualificacao);
+                    const qualElem = form.closest('.person-card').querySelector('.qualificacao');
+                    if (qualElem) {
+                        qualElem.innerHTML = data.qualificacao;
+                    } else {
+                        console.error('Elemento de qualificação não encontrado');
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            };
+        
+            document.querySelectorAll('.person-card form').forEach(form => {
+                form.querySelectorAll('input, select').forEach(input => {
+                    input.addEventListener('change', () => updateQualification(form));
+                });
+            });
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.person-card').forEach(function(card) {
+                attachChangeEvents(card);
+            });
+        });
+
+        function attachChangeEvents(container) {
+            container.addEventListener('change', function(event) {
+                const target = event.target;
+                if (target.tagName.toLowerCase() === 'input' || target.tagName.toLowerCase() === 'select') {
+                    const form = target.closest('form');
+                    if (form) {
+                        const personId = form.querySelector('input[name="id"]').value;
+                        updateQualification(form); // Atualiza a qualificação
+                        updateSession(personId, getFormData(form)); // Atualiza os dados na sessão
+                    }
+                }
+            });
+        }
+
         // Função para pesquisar dados por CPF
         document.querySelectorAll('input[name="cpf"]').forEach(function(input) {
             input.addEventListener('change', function(event) {
-                var cpf = event.target.value;
-                var form = event.target.closest('form');
+                const cpf = event.target.value;
+                const form = event.target.closest('form');
 
                 // Se o CPF estiver preenchido, mas os outros campos estiverem vazios
                 if (cpf && !form.querySelector('input[name="nome"]').value) {
@@ -312,34 +422,45 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            console.log(data);
+                            if (data.mensagem_obito) {
+                                alert(data.mensagem_obito);
+                            }
+                            const pessoa = data.pessoa;
+                            form.querySelector('input[name="nome"]').value = pessoa.nomeContribuinte_s || '';
+                            form.querySelector('input[name="nome_mae"]').value = pessoa.nomeMae_s || '';
 
-                            form.querySelector('input[name="nome"]').value = data.nomeContribuinte_s || '';
-                            form.querySelector('input[name="nome_mae"]').value = data.nomeMae_s || '';
-                            form.querySelector('input[name="telefone"]').value = data.telefone_s || '';
-                            form.querySelector('input[name="cep"]').value = data.cep_s || '';
-                            form.querySelector('input[name="logradouro"]').value = data.logradouro_s || '';
-                            form.querySelector('input[name="bairro"]').value = data.bairro_s || '';
-                            form.querySelector('input[name="complemento"]').value = data.complemento_s || '';
-                            form.querySelector('input[name="nroLogradouro"]').value = data.nroLogradouro_s || '';
-                            form.querySelector('input[name="tipoLogradouro"]').value = data.tipoLogradouro_s || '';
-                            form.querySelector('input[name="ufMunDomic"]').value = data.ufMunDomic_s || '';
-                            form.querySelector('input[name="nomeMunDomic"]').value = data.nomeMunDomic_s || '';
-                            // Adicione outros campos conforme necessário
+                            const endereco = [
+                                pessoa.logradouro_s,
+                                'nº ' + pessoa.nroLogradouro_s,
+                                pessoa.complemento_s,
+                                "bairro " + pessoa.bairro_s,
+                                pessoa.nomeMunDomic_s + '/' + pessoa.ufMunDomic_s,
+                                "CEP " + pessoa.cep_s,
+                                "telefone " + pessoa.telefone_s
+                            ].filter(Boolean).join(', ');
+
+                            form.querySelector('input[name="endereco"]').value = endereco || '';
+                            form.querySelector('input[name="naturalidade_uf"]').value = pessoa.ufMunNat_s || '';
+                            form.querySelector('input[name="naturalidade"]').value = pessoa.nomeMunNat_s || '';
+
+                            // Após preencher os dados, atualiza a qualificação
+                            const personId = form.closest('.person-card').getAttribute('id').split('-')[1];
+                            updateQualification(personId);
                         } else {
                             console.error('Erro ao buscar dados:', data.error);
                         }
                     })
-                    .catch(error => console.error('Erro:', error));
+                    .catch(error => console.error('Erro ao buscar dados:', error));
                 }
             });
         });
 
+        // Função para pesquisar CEP e atualizar a qualificação
         function pesquisarCEP(personId) {
             const form = document.querySelector(`#person-${personId} form`);
             const enderecoField = form.querySelector('input[name="endereco"]');
             const endereco = enderecoField.value;
-        
+
             fetch('/extrator/extract_address_info/', {
                 method: 'POST',
                 headers: {
@@ -359,34 +480,21 @@
                         numero_documento: form.querySelector('input[name="numero_documento"]').value,
                         cpf: form.querySelector('input[name="cpf"]').value,
                         nome: form.querySelector('input[name="nome"]').value,
-                        // Adicione aqui todos os outros campos necessários para atualizar a sessão
                     };
-                    return updateSession(personId, updatedData).then(() => {
-                        updateQualification(personId);
-                    });
+                    return updateSession(personId, updatedData).then(() => updateQualification(personId));
                 }
             })
-            .catch(error => console.error('Error:', error));
+            .catch(error => console.error('Erro ao pesquisar CEP:', error));
         }
-    
-        document.querySelectorAll('.person-card input, .person-card select').forEach(function(element) {
-            element.addEventListener('change', function(event) {
-                const personId = event.target.getAttribute('data-person-id');
-                const form = document.querySelector(`#person-${personId} form`);
-                const formData = new FormData(form);
-                const data = Object.fromEntries(formData.entries());
-    
-                updateSession(personId, data).then(() => updateQualification(personId));
-            });
-        });
-    
+
+        // Eventos para os botões de remover pessoa e pesquisar CEP
         document.querySelectorAll('.remove-person-button').forEach(function(button) {
             button.addEventListener('click', function() {
                 personToRemove = button.getAttribute('data-person-id');
                 document.getElementById('confirmation-modal').style.display = 'block';
             });
         });
-    
+
         document.querySelectorAll('.search-cep-button').forEach(function(button) {
             button.addEventListener('click', function() {
                 const personId = button.getAttribute('data-person-id');
@@ -409,36 +517,36 @@
                     alert('Erro ao remover pessoa.');
                 }
             })
-            .catch(error => console.error('Error:', error));
+            .catch(error => console.error('Erro ao remover pessoa:', error));
         });
-    
+
         document.getElementById('cancel-remove').addEventListener('click', function() {
             document.getElementById('confirmation-modal').style.display = 'none';
             personToRemove = null;
         });
-    
+
         document.getElementById('close-confirmation').addEventListener('click', function() {
             document.getElementById('confirmation-modal').style.display = 'none';
             personToRemove = null;
         });
-    
+
         document.getElementById('add-person').addEventListener('click', function() {
             document.getElementById('add-person-popup').style.display = 'block';
         });
-    
+
         document.getElementById('close-popup').addEventListener('click', function() {
             document.getElementById('add-person-popup').style.display = 'none';
         });
-    
+
         document.getElementById('clear-fields').addEventListener('click', function() {
             document.getElementById('add-person-form').reset();
         });
-    
+
         document.getElementById('add-person-form').addEventListener('submit', function(event) {
             event.preventDefault();
             const formData = new FormData(event.target);
             const data = Object.fromEntries(formData.entries());
-    
+        
             fetch('{% url "add_person" %}', {
                 method: 'POST',
                 headers: {
@@ -449,7 +557,10 @@
             })
             .then(response => response.json())
             .then(person => {
-                // Adicionar a nova pessoa ao DOM
+                if (!person.id) {
+                    console.error('ID não foi retornado pelo backend.');
+                    return;
+                }
                 const container = document.getElementById('pessoa-container');
                 const newPersonHtml = `
                 <div class="person-card" id="person-${person.id}">
@@ -544,78 +655,62 @@
                         </table>
                     </form>
                     <div class="qualificacao" id="qualificacao-${person.id}">
-                        ${person.qualificacao}
+                        ${person.qualificacao || ''}
                     </div>
                     <button class="btn-common remove-person-button" data-person-id="${person.id}">Remover Pessoa</button>
                     <button class="btn-common search-cep-button" data-person-id="${person.id}">Pesquisar CEP</button>
                 </div>`;
-                container.insertAdjacentHTML('beforeend', newPersonHtml);
-    
-                document.querySelector(`#person-${person.id} .remove-person-button`).addEventListener('click', function() {
-                    personToRemove = person.id;
-                    document.getElementById('confirmation-modal').style.display = 'block';
-                });
-    
-                document.querySelectorAll(`#person-${person.id} input, #person-${person.id} select`).forEach(function(element) {
-                    element.addEventListener('change', function(event) {
-                        const personId = event.target.getAttribute('data-person-id');
-                        updateQualification(personId);
-                    });
-                });
-    
-                document.querySelectorAll(`#person-${person.id} .search-cep-button`).forEach(function(button) {
-                    button.addEventListener('click', function() {
-                        const personId = button.getAttribute('data-person-id');
-                        pesquisarCEP(personId);
-                    });
-                });
-    
-                document.getElementById('add-person-popup').style.display = 'none';
-                document.getElementById('add-person-form').reset();
-            })
-            .catch(error => console.error('Error:', error));
-        });
-    });
-    document.getElementById('file-upload').addEventListener('change', function() {
-        const fileName = this.files[0].name;
-        document.getElementById('file-chosen').textContent = fileName;
-    });
-    
-    document.getElementById('upload-form').addEventListener('submit', function(event) {
-        event.preventDefault();
-        const form = document.getElementById('upload-form');
-        const formData = new FormData(form);
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-    
-        fetch(form.action, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': csrfToken
-            },
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            const statusDiv = document.getElementById('upload-status');
-            if (data.success) {
-                window.location.href = data.redirect_url;
-            } //else {
-                //statusDiv.innerHTML = `<p>Erro no upload(a): ${data.error}</p>`;
-            //}
-        })
-        .catch(error => {
-            console.error('Erro:', error);
-            document.getElementById('upload-status').innerHTML = `<p>Erro no upload(b): ${error}</p>`;
-        });
-    });
-    
-    document.getElementById('upload-file-button').addEventListener('click', function() {
-        document.getElementById('upload-popup').style.display = 'block';
-    });
-    
-    document.getElementById('close-upload-popup').addEventListener('click', function() {
-        document.getElementById('upload-popup').style.display = 'none';
-    });
 
+                container.insertAdjacentHTML('beforeend', newPersonHtml);
+                
+                // Reassociar eventos ao novo elemento adicionado
+                const newPersonCard = document.getElementById(`person-${person.id}`);
+                attachChangeEvents(newPersonCard);
+                
+                // Fechar o popup e limpar o formulário
+                document.getElementById('add-person-popup').style.display = 'none';  // Fechar o popup
+                document.getElementById('add-person-form').reset();  // Limpar o formulário
+            })
+            .catch(error => console.error('Erro ao adicionar pessoa:', error));
+        });
+
+        document.getElementById('file-upload').addEventListener('change', function() {
+            const fileName = this.files[0].name;
+            document.getElementById('file-chosen').textContent = fileName;
+        });
+
+        document.getElementById('upload-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const form = document.getElementById('upload-form');
+            const formData = new FormData(form);
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+            fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = data.redirect_url;
+                }
+            })
+            .catch(error => {
+                console.error('Erro no upload:', error);
+                document.getElementById('upload-status').innerHTML = `<p>Erro no upload: ${error}</p>`;
+            });
+        });
+
+        document.getElementById('upload-file-button').addEventListener('click', function() {
+            document.getElementById('upload-popup').style.display = 'block';
+        });
+
+        document.getElementById('close-upload-popup').addEventListener('click', function() {
+            document.getElementById('upload-popup').style.display = 'none';
+        });
+    });
 </script>
 {% endblock %}

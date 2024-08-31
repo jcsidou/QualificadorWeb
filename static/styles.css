@@ -122,7 +122,7 @@ footer {
     padding: 20px;
 }
 
-.person-card {
+.person-card, .dados_gerais_card {
     flex-grow: 1;
     flex-shrink: 1;
     flex-basis: content;
@@ -136,7 +136,17 @@ footer {
     background-color: lightgray; /* Fundo do card ajustado para branco */
     color: #2c3e50; /* Cor do texto ajustada para escuro dentro do person-card */
 }
-
+.textarea-field {
+    width: 99%;
+    min-height:250px;
+    resize: none;
+    border-radius:8px;
+    text-align:justify;
+    font-family: Arial, sans-serif;
+    border: 1px solid #ccc;
+    box-shadow: grey 2px 2px 2px  ;
+    padding:4px;
+}
 .table {
     width: 100%;
     border-collapse: collapse;
@@ -167,6 +177,7 @@ footer {
     padding: 4px;
     border: 1px solid #ccc;
     border-radius: 4px;
+    font-family: Arial, sans-serif;
     font-size: small; /* Tamanho da fonte ajustado para o mesmo dos demais valores */
 }
 

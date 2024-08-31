@@ -74,31 +74,5 @@
             });
         });
     });
-
-    document.addEventListener('DOMContentLoaded', function() {
-        const updateQualification = (form) => {
-            const formData = new FormData(form);
-            const data = Object.fromEntries(formData.entries());
     
-            fetch(form.action, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': form.querySelector('[name="csrfmiddlewaretoken"]').value,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(data)
-            })
-            .then(response => response.json())
-            .then(data => {
-                form.querySelector('.qualificacao').innerText = data.qualificacao;
-            })
-            .catch(error => console.error('Error:', error));
-        };
-    
-        document.querySelectorAll('.person-card form').forEach(form => {
-            form.querySelectorAll('input, select').forEach(input => {
-                input.addEventListener('change', () => updateQualification(form));
-            });
-        });
-    });
     </script>
