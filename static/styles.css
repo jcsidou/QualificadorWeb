@@ -53,29 +53,33 @@ main, .espaco_superior {
     height: 100%;
     overflow: auto;
     background-color: rgba(0,0,0,0.5);
+
 }
 
 .popup-content {
+
     background-color: lightgrey;
     margin: 15% auto;
     padding: 20px 10px 10px 10px;
     border: 1px solid #888;
     width: 80%;
+    color:#111;
     max-width: 600px;
     border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Sombra grande */
+    box-shadow: #222 4px 4px 4px ;
 }
 
 .close {
-    color: #aaa;
+    color: #666;
     float: right;
     font-size: 28px;
     font-weight: bold;
+    text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5) ;
 }
 
 .close:hover,
 .close:focus {
-    color: black;
+    color: white;
     text-decoration: none;
     cursor: pointer;
 }
@@ -286,7 +290,6 @@ h1 {
 
 #file-chosen {
     margin-left: 10px;
-    color: white;
     font-size: 14px;
 }
 
@@ -313,4 +316,12 @@ h1 {
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     text-align: center
+}
+
+.flex-div{
+    display: flex;
+    justify-content: space-around;
+    align-items:normal;
+    padding: auto;
+    gap: 10px;
 }

@@ -172,10 +172,16 @@
         <h2>Carregar a ocorrência</h2>
         <form id="upload-form" method="post" action="{% url 'upload_file' %}" enctype="multipart/form-data">
             {% csrf_token %}
-            <label for="file-upload" class="action-button btn-common">Escolher arquivo</label>
-            <input id="file-upload" type="file" name="file" required>
-            <span id="file-chosen">Nenhum arquivo escolhido</span>
-            <button type="submit" class="action-button btn-common">Upload</button>
+            <div class="flex-div">
+                <div>
+                    <label for="file-upload" class="action-button btn-common">Escolher arquivo</label>
+                    <input id="file-upload" type="file" name="file" required>
+                    <span id="file-chosen">Nenhum arquivo escolhido</span>
+                </div>
+                <div>
+                    <button type="submit" class="action-button btn-common">Upload</button>
+                </div>
+            </div>
         </form>
         <div id="upload-status"></div>
     </div>
