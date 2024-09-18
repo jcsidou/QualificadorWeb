@@ -115,11 +115,11 @@
                         <td colspan="3">
                             <select name="grau_instrucao" class="form-select" data-person-id="{{ pessoa.id }}">
                                 <option value="Ensino fundamental incompleto" {% if pessoa.grau_instrucao == 'Ensino fundamental incompleto' %}selected{% endif %}>Ensino fundamental incompleto</option>
-                                <option value="Ensino fundamental" {% if pessoa.grau_instrucao == 'Ensino fundamental' %}selected{% endif %}>Ensino fundamental</option>
+                                <option value="Ensino fundamental" {% if pessoa.grau_instrucao == 'Ensino fundamental' or pessoa.grau_instrucao == 'Ensino fundamental completo'%}selected{% endif %}>Ensino fundamental</option>
                                 <option value="Ensino médio incompleto" {% if pessoa.grau_instrucao == 'Ensino médio incompleto' %}selected{% endif %}>Ensino médio incompleto</option>
-                                <option value="Ensino médio" {% if pessoa.grau_instrucao == 'Ensino médio' %}selected{% endif %}>Ensino médio</option>
+                                <option value="Ensino médio" {% if pessoa.grau_instrucao == 'Ensino médio' or pessoa.grau_instrucao == 'Ensino médio completo' %}selected{% endif %}>Ensino médio</option>
                                 <option value="Ensino superior incompleto" {% if pessoa.grau_instrucao == 'Ensino superior incompleto' %}selected{% endif %}>Ensino superior incompleto</option>
-                                <option value="Ensino superior" {% if pessoa.grau_instrucao == 'Ensino superior' %}selected{% endif %}>Ensino superior</option>
+                                <option value="Ensino superior" {% if pessoa.grau_instrucao == 'Ensino superior' or pessoa.grau_instrucao == 'Ensino superior completo' %}selected{% endif %}>Ensino superior</option>
                             </select>
                         </td>
                     </tr>
@@ -465,8 +465,9 @@
         function pesquisarCEP(personId) {
             const form = document.querySelector(`#person-${personId} form`);
             const enderecoField = form.querySelector('input[name="endereco"]');
+            const enderecoProfissionalField = form.querySelector('input[name="end_profissional"]');
             const endereco = enderecoField.value;
-
+        
             fetch('/extrator/extract_address_info/', {
                 method: 'POST',
                 headers: {
@@ -481,17 +482,56 @@
                     alert(data.error);
                 } else {
                     enderecoField.value = data.endereco;
-                    const updatedData = {
-                        endereco: data.endereco,
-                        numero_documento: form.querySelector('input[name="numero_documento"]').value,
-                        cpf: form.querySelector('input[name="cpf"]').value,
-                        nome: form.querySelector('input[name="nome"]').value,
-                    };
-                    return updateSession(personId, updatedData).then(() => updateQualification(personId));
+        
+                    // Se existir um endereço comercial a ser pesquisado, faça a pesquisa
+                    if (enderecoProfissionalField && enderecoProfissionalField.value) {
+                        fetch('/extrator/extract_address_info/', {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRFToken': document.querySelector(`[name="csrfmiddlewaretoken"]`).value,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ text: enderecoProfissionalField.value })
+                        })
+                        .then(response => response.json())
+                        .then(dataProfissional => {
+                            if (dataProfissional.error) {
+                                alert(dataProfissional.error);
+                            } else {
+                                enderecoProfissionalField.value = dataProfissional.endereco;
+        
+                                // Atualiza a sessão e a qualificação após os dois endereços serem atualizados
+                                const updatedData = {
+                                    endereco: data.endereco,
+                                    end_profissional: dataProfissional.endereco,
+                                    numero_documento: form.querySelector('input[name="numero_documento"]').value,
+                                    cpf: form.querySelector('input[name="cpf"]').value,
+                                    nome: form.querySelector('input[name="nome"]').value,
+                                };
+        
+                                updateSession(personId, updatedData);
+                                updateQualification(form);
+                            }
+                        })
+                        .catch(error => console.error('Erro ao pesquisar CEP do endereço profissional:', error));
+                    } else {
+                        // Se não houver endereço profissional, apenas atualiza o endereço principal
+                        const updatedData = {
+                            endereco: data.endereco,
+                            numero_documento: form.querySelector('input[name="numero_documento"]').value,
+                            cpf: form.querySelector('input[name="cpf"]').value,
+                            nome: form.querySelector('input[name="nome"]').value,
+                        };
+        
+                        updateSession(personId, updatedData);
+                        updateQualification(form);
+                    }
                 }
             })
             .catch(error => console.error('Erro ao pesquisar CEP:', error));
         }
+        
+        
 
         // Eventos para os botões de remover pessoa e pesquisar CEP
         document.querySelectorAll('.remove-person-button').forEach(function(button) {

@@ -57,7 +57,7 @@ with open('./configs.json') as f:
         raise ValueError("Regex not found in /configs.json")
 ###
 regex_dados_gerais='Dados Gerais\\n.rg.o:\\s+(?P<no_orgao_op>\\d{6})\\s+-?\\s+(?P<orgao_op>[\\S\\s]*)\\s+Ano:\\s+(?P<ano_op>\\d{4})\\s+\\w+:\\s+(?P<no_op>\\d*)\\n.*\\n.ata\\s\\w+:\\s+(?P<data_registro>\\d{2}\\/\\d{2}\\/\\d{4})\\s\\w+\\s(?P<hora_registro>\\d{2}:\\d{2}).*\\n\\w+.\\s+(?P<fato>.*)\\n.\\w+:\\s+(?P<data_fato>\\d{2}\\/\\d{2}\\/\\d{4})[\\s\\w]+(?P<hora_fato>\\d{2}:\\d{2})[\\s\\w]+:\\s(?P<tipo_area>.*)(?P<consumacao>.onsumado|.entado)[\\S\\s\\w]+:.nder.*:\\s+(?P<endereco_fato>.*)\\n\\w+\\n(?P<historico>[\\w\\s\\S]*).rgão de |Participante'
-regex_pessoas='Participante:\\s+(?P<no_participante>\\d+)\\s+-\\s+(?P<condicao>\\w*\\s?\\w*)\\s*(?P<presente>\\w+)?\\nEndere.o:\\s+(?P<endereco>.*\\n?.*)\\nEndere.o\\s\\w+:(?P<end_profissional>.*\\n?.*)(\\n?[\\w|\\s]*representar em juízo.\\s*(?P<representa>Sim|Não)\\n?)?([\\w*\\s]*\\?\\s?(?P<requer_mpu>Sim|Não))?Estado\\sCivil:\\s+(?P<estado_civil>.*).*\\sGrau\\sde\\s.nstru..o:\\s(?P<grau_instrucao>[\\s\\S\\n]{,30})?Cor.\\w+:\\s(?P<cor_pele>.*)\\nNaturalidade:\\s((?P<naturalidade>.*)[\\n|\\s](?P<naturalidade_uf>[A-Z]{2}))?\\s?Nacionalidade:\\s(?P<nacionalidade>.*)\\sCor .lhos:\\s(?P<cor_olhos>[A-Z][a-z|\\s]*)(?P<nome>[\\w\\s]*)\\sNome:\\s(?P<nome_pai>[\\w|\\s|-]*)\\s\\/\\s(?P<nome_mae>[\\w|\\s|-]*)\\sPai.*\\n\\w*\\s\\w+:\\s(?P<data_nascimento>\\d{2}\\/\\d{2}\\/\\d{4})\\sSexo:\\s(?P<sexo>\\w*\\s?\\w*)\\sCPF:\\s?(?P<cpf>(\\d{3}\\.\\d{3}\\.\\d{3}.\\d{2})?)\\nDocumento:\\s(?P<documento>.*)\\sNúmero:\\s?(?P<numero_documento>\\d*)\\nProfi\\w+:\\s(?P<profissao>.*)?Cargo:\\s(?P<cargo>.*)?Cond\\w*\\s\\w*:\\s(?P<condicao_fisica>.*)?'
+regex_pessoas='Participante:\\s+(?P<no_participante>\\d+)\\s+-\\s+(?P<condicao>\\w*\\s?\\w*)\\s*(?P<presente>\\w+)?\\nEndere.o:\\s+(?P<endereco>.*\\n?.*)\\nEndere.o\\s\\w+:(?P<end_profissional>.*\\n?.*)(\\n?[\\w|\\s]*representar em juízo.\\s*(?P<representa>Sim|Não)\\n?)?([\\w*\\s]*\\?\\s?(?P<requer_mpu>Sim|Não))?Estado\\sCivil:\\s+(?P<estado_civil>.*).*\\sGrau\\sde\\s.nstru..o:\\s(?P<grau_instrucao>[\\s\\S]{,30})Cor.\\w+:\\s?(?P<cor_pele>.*)\\nNaturalidade:\\s((?P<naturalidade>.*)[\\n|\\s](?P<naturalidade_uf>[A-Z]{2}))?\\s?Nacionalidade:\\s(?P<nacionalidade>.*)\\sCor .lhos:\\s(?P<cor_olhos>[A-Z][a-z|\\s]*)(?P<nome>[\\w\\s]*)\\sNome:\\s(?P<nome_pai>[\\w|\\s|-]*)\\s\\/\\s(?P<nome_mae>[\\w|\\s|-]*)\\sPai.*\\n\\w*\\s\\w+:\\s(?P<data_nascimento>\\d{2}\\/\\d{2}\\/\\d{4})\\sSexo:\\s(?P<sexo>\\w*\\s?\\w*)\\sCPF:\\s?(?P<cpf>(\\d{3}\\.\\d{3}\\.\\d{3}.\\d{2})?)\\nDocumento:\\s(?P<documento>.*)\\sNúmero:\\s?(?P<numero_documento>\\d*)\\nProfi\\w+:\\s(?P<profissao>.*)?Cargo:\\s(?P<cargo>.*)?Cond\\w*\\s\\w*:\\s(?P<condicao_fisica>.*)?'
 regex_cabecalho="(?P<Cabecalho>^.*?)\\nDados\\s"
 regex_rodape="ROCP.*\\n"
 
@@ -109,6 +109,8 @@ def excluir_rodape(texto):
     return texto_limpo
 
 def clean_string(input_string: str) -> str:
+    if not input_string:
+        return ''
     cleaned_string = input_string.replace('\n', ' ').replace('\r', ' ')
     while '  ' in cleaned_string:
         cleaned_string = cleaned_string.replace('  ', ' ')
@@ -176,9 +178,9 @@ def obter_qualificacao(pessoa):
     if not naturalidade:
         naturalidade = f'localidade {random.choice(aleatorio_feminino)}'
     else:
-        naturalidade_uf = pessoa.get('naturalidade_uf').upper().strip() or None
+        naturalidade_uf = pessoa.get('naturalidade_uf') or None
         if naturalidade_uf:
-            naturalidade =f'''{naturalidade}/{naturalidade_uf}'''
+            naturalidade =f'''{naturalidade}/{naturalidade_uf.upper().strip()}'''
     
     cor_pele = str(pessoa.get('cor_pele')).strip().lower() or random.choice(aleatorio_feminino)
     documento = str(pessoa.get('documento')).strip().lower() or random.choice(aleatorio_masculino)
@@ -218,9 +220,12 @@ def upload_file_view(request):
         if form.is_valid():
             arquivo = request.FILES['file']
             texto = extrair_texto_pdf(arquivo)
-            print(texto)
-            match = re.search(regex_dados_gerais, texto, re.MULTILINE)
-
+            
+            #txt_path =  f"{arquivo}.txt"
+            with open(f"{arquivo}.txt", "w", encoding="utf-8") as text_file:
+                text_file.write(texto)
+                
+            match = re.search(regex_dados_gerais, texto, re.MULTILINE)    
             if match:
                 # Extrair os dados capturados pelos grupos nomeados e armazenar em um dicionário
                 dados_gerais = {
@@ -262,6 +267,13 @@ def upload_file_view(request):
                 
                 if participante['naturalidade']:
                     participante['naturalidade'] = formatar_nome(clean_string(participante['naturalidade']))
+                else:
+                    participante['naturalidade'] = ''
+
+                if not participante['naturalidade_uf']:
+                    participante['naturalidade_uf'] = clean_string(participante['naturalidade_uf'])
+                else:
+                    participante['naturalidade_uf'] = ''
                 
                 if participante['endereco']:
                     participante['endereco'] = clean_string(participante['endereco']).rstrip('.')
